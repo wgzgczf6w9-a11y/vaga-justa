@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vaga Justa</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+
+        <!-- ========================================== -->
+        <!-- TELA 1: INICIAL -->
+        <!-- ========================================== -->
+        <section id="tela-inicial" class="tela ativa">
+            <header class="header-transparente">
+                <div class="espacador"></div>
+                <button class="btn-acessibilidade" onclick="mostrarTela('tela-acessibilidade')" aria-label="Acessibilidade">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z"/></svg>
+                </button>
+            </header>
+            
+            <div class="conteudo-central">
+                <div class="logo-circulo">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                </div>
+                <h1 class="marca">Vaga Justa</h1>
+                <p class="texto-inicial">Bem vindo ao Vaga Justa.<br>Encontre oportunidades de trabalho de forma simples e justa.</p>
+                
+                <div class="ilustracao">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                </div>
+            </div>
+
+            <div class="rodape-acao">
+                <button class="btn-primario" onclick="mostrarTela('tela-login')">Começar</button>
+            </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- TELA 2: LOGIN -->
+        <!-- ========================================== -->
+        <section id="tela-login" class="tela">
+            <header class="header-padrao">
+                <button class="btn-voltar" onclick="mostrarTela('tela-inicial')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                </button>
+                <button class="btn-acessibilidade" onclick="mostrarTela('tela-acessibilidade')">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z"/></svg>
+                </button>
+            </header>
+
+            <div class="conteudo-scroll">
+                <h2>Login</h2>
+                <p class="subtitulo">Que bom ter você de volta!</p>
+
+                <form id="form-login" onsubmit="fazerLogin(event)">
+                    <div class="grupo-input">
+                        <label for="login-email">E-mail</label>
+                        <input type="email" id="login-email" placeholder="seu@email.com" required>
+                    </div>
+
+                    <div class="grupo-input">
+                        <label for="login-senha">Senha</label>
+                        <div class="input-com-icone">
+                            <input type="password" id="login-senha" placeholder="Digite sua senha" required>
+                            <button type="button" class="btn-mostrar-senha" onclick="alternarSenha('login-senha')">👁️</button>
+                        </div>
+                    </div>
+
+                    <a href="#" class="link-simples text-right">Esqueceu sua senha?</a>
+
+                    <button type="submit" class="btn-primario mt-20">Entrar</button>
+
+                    <div class="separador">
+                        <span>ou</span>
+                    </div>
+
+                    <button type="button" class="btn-secundario" onclick="fazerLoginGoogle()">
+                        <span class="icone-google">G</span> Entrar com Google
+                    </button>
+
+                    <p class="texto-central mt-20">
+                        Ainda não tem uma conta? <a href="#" onclick="mostrarTela('tela-cadastro')">Cadastre-se</a>
+                    </p>
+                </form>
+            </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- TELA 3: CADASTRO -->
+        <!-- ========================================== -->
+        <section id="tela-cadastro" class="tela">
+            <header class="header-padrao">
+                <button class="btn-voltar" onclick="mostrarTela('tela-login')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                </button>
+                <button class="btn-acessibilidade" onclick="mostrarTela('tela-acessibilidade')">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z"/></svg>
+                </button>
+            </header>
+
+            <div class="conteudo-scroll">
+                <h2>Crie sua conta</h2>
+                <p class="subtitulo">Vamos começar com alguns dados.</p>
+                <div class="progresso-dots">
+                    <span class="dot ativo"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                </div>
+
+                <form id="form-cadastro" onsubmit="criarConta(event)">
+                    <div class="grupo-input">
+                        <label for="cad-nome">Nome completo</label>
+                        <input type="text" id="cad-nome" placeholder="Digite seu nome" required>
+                    </div>
+                    <div class="grupo-input">
+                        <label for="cad-email">E-mail</label>
+                        <input type="email" id="cad-email" placeholder="seu@email.com" required>
+                    </div>
+                    <div class="grupo-input">
+                        <label for="cad-senha">Senha</label>
+                        <div class="input-com-icone">
+                            <input type="password" id="cad-senha" placeholder="Crie uma senha" required>
+                            <button type="button" class="btn-mostrar-senha" onclick="alternarSenha('cad-senha')">👁️</button>
+                        </div>
+                    </div>
+                    <div class="grupo-input">
+                        <label for="cad-confirmar">Confirmar senha</label>
+                        <div class="input-com-icone">
+                            <input type="password" id="cad-confirmar" placeholder="Confirme sua senha" required>
+                            <button type="button" class="btn-mostrar-senha" onclick="alternarSenha('cad-confirmar')">👁️</button>
+                        </div>
+                    </div>
+                    
+                    <h3 class="titulo-sessao mt-20">Dados Profissionais</h3>
+
+                    <div class="grupo-input">
+                        <label for="cad-telefone">Telefone</label>
+                        <input type="tel" id="cad-telefone" placeholder="(00) 00000-0000" required>
+                    </div>
+                    <div class="grupo-input">
+                        <label for="cad-localizacao">Localização</label>
+                        <input type="text" id="cad-localizacao" placeholder="Ex: Salvador - BA" required>
+                    </div>
+                    <div class="grupo-input">
+                        <label for="cad-formacao">Formação</label>
+                        <input type="text" id="cad-formacao" placeholder="Ex: Técnico em Informática" required>
+                    </div>
+                    <div class="grupo-input">
+                        <label for="cad-experiencia">Experiência Profissional (anos)</label>
+                        <input type="number" id="cad-experiencia" placeholder="Ex: 2" min="0" required>
+                    </div>
+                    <div class="grupo-input">
+                        <label for="cad-habilidades">Habilidades</label>
+                        <input type="text" id="cad-habilidades" placeholder="Atendimento, Informática, Excel" required>
+                    </div>
+                    <div class="grupo-input">
+                        <label for="cad-ingles">Nível de inglês</label>
+                        <select id="cad-ingles" required>
+                            <option value="">Selecione</option>
+                            <option value="Nenhum">Nenhum</option>
+                            <option value="Básico">Básico</option>
+                            <option value="Intermediário">Intermediário</option>
+                            <option value="Avançado">Avançado</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn-primario mt-20">Criar conta / Próximo</button>
+
+                    <p class="texto-central mt-20">
+                        Já tem uma conta? <a href="#" onclick="mostrarTela('tela-login')">Entrar</a>
+                    </p>
+                </form>
+            </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- TELA 4: VAGAS -->
+        <!-- ========================================== -->
+        <section id="tela-vagas" class="tela com-nav">
+            <header class="header-padrao mb-10">
+                <button class="btn-voltar invisible">
+                    <!-- Invisible para manter alinhamento -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                </button>
+                <h2 class="titulo-header">Vagas</h2>
+                <button class="btn-acessibilidade" onclick="mostrarTela('tela-acessibilidade')">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z"/></svg>
+                </button>
+            </header>
+
+            <div class="conteudo-scroll pt-0">
+                <div class="busca-container">
+                    <input type="text" id="input-busca" placeholder="Buscar vagas..." onkeyup="buscarVagas()">
+                    <span class="icone-busca">🔍</span>
+                </div>
+
+                <div class="filtros-container">
+                    <button class="chip ativo" onclick="filtrarVagas('Todas', this)">Todas</button>
+                    <button class="chip" onclick="filtrarVagas('Recentes', this)">Recentes</button>
+                    <button class="chip" onclick="filtrarVagas('Remoto', this)">Remoto</button>
+                    <button class="chip" onclick="filtrarVagas('Salvador - BA', this)">Salvador - BA</button>
+                </div>
+
+                <div id="lista-vagas" class="lista-cards">
+                    <!-- Vagas geradas pelo JS -->
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- TELA 5: COMPATIBILIDADE -->
+        <!-- ========================================== -->
+        <section id="tela-compatibilidade" class="tela">
+            <header class="header-padrao">
+                <button class="btn-voltar" onclick="mostrarTela('tela-vagas')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                </button>
+                <h2 class="titulo-header">Compatibilidade</h2>
+                <button class="btn-acessibilidade" onclick="mostrarTela('tela-acessibilidade')">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z"/></svg>
+                </button>
+            </header>
+
+            <div class="conteudo-scroll">
+                <div id="detalhes-vaga-compatibilidade" class="cabecalho-vaga-simples">
+                    <!-- Preenchido pelo JS -->
+                </div>
+
+                <div class="grafico-circulo-container">
+                    <div class="grafico-circulo">
+                        <svg viewBox="0 0 36 36" class="circular-chart">
+                            <path class="circle-bg"
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                            />
+                            <path class="circle" id="circle-porcentagem"
+                                stroke-dasharray="85, 100"
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                            />
+                        </svg>
+                        <div class="porcentagem-texto">
+                            <span id="valor-compatibilidade">85%</span>
+                            <small>Compatibilidade</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="analise-pontos">
+                    <h3 class="verde-texto">Pontos fortes</h3>
+                    <ul id="lista-pontos-fortes" class="lista-check">
+                        <!-- Gerado via JS -->
+                    </ul>
+
+                    <h3 class="cinza-texto mt-20">Para melhorar</h3>
+                    <ul id="lista-pontos-melhorar" class="lista-bullet">
+                         <!-- Gerado via JS -->
+                    </ul>
+                </div>
+
+                <button id="btn-candidatar" class="btn-primario mt-30" onclick="candidatarSeAtual()">Me candidatar</button>
+            </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- TELA 6: CANDIDATURAS -->
+        <!-- ========================================== -->
+        <section id="tela-candidaturas" class="tela com-nav">
+            <header class="header-padrao mb-10">
+                <h2 class="titulo-header text-left ml-20">Minhas Candidaturas</h2>
+                <button class="btn-acessibilidade" onclick="mostrarTela('tela-acessibilidade')">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z"/></svg>
+                </button>
+            </header>
+
+            <div class="conteudo-scroll pt-0">
+                <div class="filtros-container">
+                    <button class="chip ativo" onclick="filtrarCandidaturas('Todas', this)">Todas</button>
+                    <button class="chip" onclick="filtrarCandidaturas('Em análise', this)">Em análise</button>
+                    <button class="chip" onclick="filtrarCandidaturas('Entrevista', this)">Entrevista</button>
+                    <button class="chip" onclick="filtrarCandidaturas('Finalizadas', this)">Finalizadas</button>
+                </div>
+
+                <div id="lista-candidaturas" class="lista-cards">
+                    <!-- Gerado via JS -->
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- TELA 7: FAVORITOS -->
+        <!-- ========================================== -->
+        <section id="tela-favoritos" class="tela com-nav">
+            <header class="header-padrao">
+                <h2 class="titulo-header text-left ml-20">Meus Favoritos</h2>
+                <button class="btn-acessibilidade" onclick="mostrarTela('tela-acessibilidade')">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z"/></svg>
+                </button>
+            </header>
+
+            <div class="conteudo-scroll">
+                <div id="lista-favoritos" class="lista-cards">
+                    <!-- Gerado via JS -->
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- TELA 8: PERFIL -->
+        <!-- ========================================== -->
+        <section id="tela-perfil" class="tela com-nav">
+            <header class="header-padrao">
+                <h2 class="titulo-header text-left ml-20">Meu Perfil</h2>
+                <button class="btn-acessibilidade" onclick="mostrarTela('tela-acessibilidade')">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z"/></svg>
+                </button>
+            </header>
+
+            <div class="conteudo-scroll">
+                <div class="perfil-header">
+                    <div class="foto-perfil">
+                        <svg viewBox="0 0 24 24" fill="#ccc"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                        <div class="icone-editar-foto">✏️</div>
+                    </div>
+                    <div class="info-basica">
+                        <h3 id="perfil-nome-display">Nome</h3>
+                        <p id="perfil-email-display">email@email.com</p>
+                    </div>
+                </div>
+
+                <div class="secao-info">
+                    <h4>Informações pessoais</h4>
+                    <div class="linha-info">
+                        <span>Telefone</span>
+                        <strong id="perfil-telefone-display">(00) 00000-0000</strong>
+                    </div>
+                    <div class="linha-info">
+                        <span>Localização</span>
+                        <strong id="perfil-localizacao-display">Local</strong>
+                    </div>
+                    <div class="linha-info">
+                        <span>Formação</span>
+                        <strong id="perfil-formacao-display">Formação</strong>
+                    </div>
+                    <div class="linha-info">
+                        <span>Experiência</span>
+                        <strong id="perfil-experiencia-display">0 anos</strong>
+                    </div>
+                    <div class="linha-info">
+                        <span>Habilidades</span>
+                        <strong id="perfil-habilidades-display">-</strong>
+                    </div>
+                    <div class="linha-info">
+                        <span>Inglês</span>
+                        <strong id="perfil-ingles-display">-</strong>
+                    </div>
+                </div>
+
+                <div class="lista-menus">
+                    <button class="item-menu">
+                        <span>Meu currículo</span>
+                        <span>></span>
+                    </button>
+                    <button class="item-menu">
+                        <span>Editar perfil</span>
+                        <span>></span>
+                    </button>
+                    <button class="item-menu">
+                        <span>Configurações da conta</span>
+                        <span>></span>
+                    </button>
+                    <button class="item-menu danger" onclick="sairConta()">
+                        <span>Sair da conta</span>
+                        <span>></span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- ACESSIBILIDADE -->
+        <!-- ========================================== -->
+        <section id="tela-acessibilidade" class="tela">
+            <header class="header-padrao">
+                <button class="btn-voltar" onclick="voltarPaginaAnterior()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                </button>
+                <h2 class="titulo-header">Acessibilidade</h2>
+                <div style="width: 24px;"></div>
+            </header>
+
+            <div class="conteudo-scroll">
+                <div class="lista-opcoes-acessibilidade">
+                    
+                    <div class="item-acessibilidade">
+                        <div class="info-acess">
+                            <span class="icone-acess">◐</span>
+                            <span>Alto contraste</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-contraste" onchange="ativarContraste(this.checked)">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+
+                    <div class="item-acessibilidade">
+                        <div class="info-acess">
+                            <span class="icone-acess">A</span>
+                            <span>Texto maior</span>
+                        </div>
+                        <div class="controles-texto">
+                            <span class="t-pequeno">A</span>
+                            <span class="t-medio">A</span>
+                            <span class="t-grande ativo" id="btn-texto-maior" onclick="aumentarTexto()">A</span>
+                        </div>
+                    </div>
+
+                    <div class="item-acessibilidade">
+                        <div class="info-acess">
+                            <span class="icone-acess">🔊</span>
+                            <span>Leitor de tela</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" onchange="mostrarMsgDemonstrativa(this)">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+
+                    <div class="item-acessibilidade">
+                        <div class="info-acess">
+                            <span class="icone-acess">🖼️</span>
+                            <span>Descrição de imagens</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" onchange="mostrarMsgDemonstrativa(this)">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+
+                    <div class="item-acessibilidade">
+                        <div class="info-acess">
+                            <span class="icone-acess">💬</span>
+                            <span>Legendas (vídeos)</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" onchange="mostrarMsgDemonstrativa(this)">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+
+                    <div class="item-acessibilidade">
+                        <div class="info-acess">
+                            <span class="icone-acess">☀️</span>
+                            <span>Cores adaptadas</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" onchange="mostrarMsgDemonstrativa(this)">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+
+                </div>
+
+                <div class="banner-acessibilidade mt-30">
+                    <div class="icone-coracao-verde">💚</div>
+                    <p>O Vaga Justa acredita em um futuro mais inclusivo. Acessibilidade para todos.</p>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- NAVEGAÇÃO INFERIOR -->
+        <!-- ========================================== -->
+        <nav id="nav-inferior" class="nav-inferior">
+            <button class="nav-item" id="nav-vagas" onclick="mostrarTela('tela-vagas')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                <span>Início</span>
+            </button>
+            <button class="nav-item" id="nav-vagas-2" onclick="mostrarTela('tela-vagas')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                <span>Vagas</span>
+            </button>
+            <button class="nav-item" id="nav-candidaturas" onclick="mostrarTela('tela-candidaturas')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                <span>Candidaturas</span>
+            </button>
+            <button class="nav-item" id="nav-favoritos" onclick="mostrarTela('tela-favoritos')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                <span>Favoritos</span>
+            </button>
+            <button class="nav-item" id="nav-perfil" onclick="mostrarTela('tela-perfil')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span>Perfil</span>
+            </button>
+        </nav>
+
+    </div>
+
+    <!-- Scripts da aplicação -->
+    <script src="script.js"></script>
+</body>
+</html>
