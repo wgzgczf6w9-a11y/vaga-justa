@@ -365,15 +365,15 @@
                 </div>
 
                 <div class="lista-menus">
-                    <button class="item-menu">
+                    <button class="item-menu" onclick="mostrarTela('tela-curriculo')">
                         <span>Meu currículo</span>
                         <span>></span>
                     </button>
-                    <button class="item-menu">
+                    <button class="item-menu" onclick="abrirEditarPerfil()">
                         <span>Editar perfil</span>
                         <span>></span>
                     </button>
-                    <button class="item-menu">
+                    <button class="item-menu" onclick="mostrarTela('tela-configuracoes')">
                         <span>Configurações da conta</span>
                         <span>></span>
                     </button>
@@ -474,6 +474,150 @@
                     <div class="icone-coracao-verde">💚</div>
                     <p>O Vaga Justa acredita em um futuro mais inclusivo. Acessibilidade para todos.</p>
                 </div>
+            </div>
+        </section>
+
+
+        <!-- ========================================== -->
+        <!-- TELA 9: EDITAR PERFIL -->
+        <!-- ========================================== -->
+        <section id="tela-editar-perfil" class="tela">
+            <header class="header-padrao">
+                <button class="btn-voltar" onclick="mostrarTela('tela-perfil')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                </button>
+                <h2 class="titulo-header">Editar Perfil</h2>
+                <div style="width: 24px;"></div>
+            </header>
+
+            <div class="conteudo-scroll">
+                <div id="msg-sucesso-perfil" style="display: none; background-color: var(--verde-claro); color: var(--verde-principal); padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: center;">Perfil atualizado com sucesso!</div>
+                <form id="form-editar-perfil" onsubmit="salvarPerfil(event)">
+                    <div class="grupo-input">
+                        <label for="edit-nome">Nome completo</label>
+                        <input type="text" id="edit-nome" required>
+                    </div>
+                    <div class="grupo-input">
+                        <label for="edit-telefone">Telefone</label>
+                        <input type="tel" id="edit-telefone" required>
+                    </div>
+                    <div class="grupo-input">
+                        <label for="edit-localizacao">Localização</label>
+                        <input type="text" id="edit-localizacao" required>
+                    </div>
+                    <div class="grupo-input">
+                        <label for="edit-formacao">Formação</label>
+                        <input type="text" id="edit-formacao" required>
+                    </div>
+                    <div class="grupo-input">
+                        <label for="edit-experiencia">Experiência Profissional (anos)</label>
+                        <input type="number" id="edit-experiencia" min="0" required>
+                    </div>
+                    <div class="grupo-input">
+                        <label for="edit-habilidades">Habilidades</label>
+                        <input type="text" id="edit-habilidades" required>
+                    </div>
+                    <div class="grupo-input">
+                        <label for="edit-ingles">Nível de inglês</label>
+                        <select id="edit-ingles" required>
+                            <option value="Nenhum">Nenhum</option>
+                            <option value="Básico">Básico</option>
+                            <option value="Intermediário">Intermediário</option>
+                            <option value="Avançado">Avançado</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-primario mt-20">Salvar alterações</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TELA 10: MEU CURRÍCULO -->
+        <!-- ========================================== -->
+        <section id="tela-curriculo" class="tela">
+            <header class="header-padrao">
+                <button class="btn-voltar" onclick="mostrarTela('tela-perfil')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                </button>
+                <h2 class="titulo-header">Meu currículo</h2>
+                <div style="width: 24px;"></div>
+            </header>
+
+            <div class="conteudo-scroll">
+                <p class="texto-central mb-10">Adicione seu currículo para manter suas informações profissionais organizadas.</p>
+                <div class="grupo-input mt-20">
+                    <label>Selecionar currículo (PDF)</label>
+                    <input type="file" id="input-curriculo" accept="application/pdf" onchange="selecionarCurriculo()">
+                </div>
+                <div id="status-curriculo" class="mt-20" style="display: none; text-align: center;">
+                    <p class="verde-texto" style="font-weight: bold;">Currículo selecionado:</p>
+                    <p id="nome-arquivo-curriculo" style="margin-bottom: 10px;"></p>
+                    <p class="texto-central" style="font-size: 13px;">Arquivo selecionado para esta sessão.</p>
+                </div>
+                <p class="texto-central mt-30" style="font-size: 12px; color: var(--texto-cinza);">A análise automática do currículo será implementada em uma etapa futura.</p>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TELA 11: CONFIGURAÇÕES -->
+        <!-- ========================================== -->
+        <section id="tela-configuracoes" class="tela">
+            <header class="header-padrao">
+                <button class="btn-voltar" onclick="mostrarTela('tela-perfil')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                </button>
+                <h2 class="titulo-header">Configurações da conta</h2>
+                <div style="width: 24px;"></div>
+            </header>
+
+            <div class="conteudo-scroll">
+                <h3 class="titulo-sessao mt-10">Preferências</h3>
+                <div class="lista-menus">
+                    <button class="item-menu" onclick="mostrarTela('tela-acessibilidade')">
+                        <span>Acessibilidade</span>
+                        <span>></span>
+                    </button>
+                    <button class="item-menu" onclick="aumentarTexto()">
+                        <span>Texto maior (Ativar/Desativar)</span>
+                        <span>></span>
+                    </button>
+                    <button class="item-menu" onclick="toggleContrasteConfig()">
+                        <span>Alto contraste (Ativar/Desativar)</span>
+                        <span>></span>
+                    </button>
+                </div>
+                
+                <h3 class="titulo-sessao mt-30">Conta</h3>
+                <div class="lista-menus">
+                    <button class="item-menu danger" onclick="sairConta()">
+                        <span>Sair da conta</span>
+                        <span>></span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TELA 12: DETALHES DA CANDIDATURA -->
+        <!-- ========================================== -->
+        <section id="tela-detalhes-candidatura" class="tela">
+            <header class="header-padrao">
+                <button class="btn-voltar" onclick="mostrarTela('tela-candidaturas')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                </button>
+                <h2 class="titulo-header">Detalhes da candidatura</h2>
+                <div style="width: 24px;"></div>
+            </header>
+
+            <div class="conteudo-scroll">
+                <div id="info-detalhes-candidatura" class="cabecalho-vaga-simples">
+                    <!-- Preenchido via JS -->
+                </div>
+                
+                <h3 class="titulo-sessao mt-30">Etapas do processo</h3>
+                <ul id="lista-etapas-processo" style="list-style: none; padding: 0;">
+                    <!-- Preenchido via JS -->
+                </ul>
             </div>
         </section>
 

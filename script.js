@@ -561,7 +561,7 @@ function renderizarCandidaturas(filtroStatus = "Todas") {
         if (cand.status === "Entrevista") classeStatus += " status-entrevista";
 
         const cardHTML = `
-            <div class="card-vaga">
+            <div class="card-vaga" style="cursor: pointer;" onclick="verDetalhesCandidatura(${cand.idVaga})">
                 <div class="card-cabecalho">
                     <div>
                         <h3 class="cargo">${cand.cargo}</h3>
@@ -578,6 +578,57 @@ function renderizarCandidaturas(filtroStatus = "Todas") {
         `;
         container.innerHTML += cardHTML;
     });
+}
+
+function verDetalhesCandidatura(idVaga) {
+    const candidatura = minhasCandidaturas.find(c => c.idVaga === idVaga);
+    if (!candidatura) return;
+
+    const info = document.getElementById('info-detalhes-candidatura');
+    info.innerHTML = `
+        <h3 class="cargo">${candidatura.cargo}</h3>
+        <p class="empresa">${candidatura.empresa}</p>
+        <p class="local">${candidatura.localizacao}</p>
+        <p class="local mt-10">Enviado em ${candidatura.data}</p>
+        <div class="mt-10">
+            <span class="status-candidatura ${candidatura.status === 'Entrevista' ? 'status-entrevista' : ''}">${candidatura.status}</span>
+        </div>
+    `;
+
+    const lista = document.getElementById('lista-etapas-processo');
+    
+    let etapasHTML = `
+        <li style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+            <div style="width: 20px; height: 20px; border-radius: 50%; background-color: var(--verde-principal); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">✓</div>
+            <div style="flex: 1;">
+                <p style="font-weight: bold; font-size: 14px;">Candidatura enviada</p>
+                <p style="font-size: 12px; color: var(--texto-cinza);">${candidatura.data}</p>
+            </div>
+        </li>
+    `;
+    
+    const isEntrevistaOuFim = (candidatura.status === 'Entrevista' || candidatura.status === 'Finalizadas');
+    
+    etapasHTML += `
+        <li style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+            <div style="width: 20px; height: 20px; border-radius: 50%; background-color: var(--verde-principal); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">✓</div>
+            <div style="flex: 1;">
+                <p style="font-weight: bold; font-size: 14px;">Análise do perfil</p>
+            </div>
+        </li>
+    `;
+    
+    etapasHTML += `
+        <li style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+            <div style="width: 20px; height: 20px; border-radius: 50%; background-color: ${isEntrevistaOuFim ? 'var(--verde-principal)' : 'var(--borda)'}; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">${isEntrevistaOuFim ? '✓' : ''}</div>
+            <div style="flex: 1;">
+                <p style="font-weight: ${isEntrevistaOuFim ? 'bold' : 'normal'}; font-size: 14px; color: ${isEntrevistaOuFim ? 'var(--texto-escuro)' : 'var(--texto-cinza)'};">Entrevista com RH</p>
+            </div>
+        </li>
+    `;
+
+    lista.innerHTML = etapasHTML;
+    mostrarTela('tela-detalhes-candidatura');
 }
 
 function filtrarCandidaturas(status, btnClicado) {
@@ -602,6 +653,60 @@ function preencherPerfil() {
     document.getElementById('perfil-experiencia-display').innerText = `${usuarioAtual.experiencia} anos` || "0 anos";
     document.getElementById('perfil-habilidades-display').innerText = usuarioAtual.habilidades || "-";
     document.getElementById('perfil-ingles-display').innerText = usuarioAtual.ingles || "-";
+}
+
+function abrirEditarPerfil() {
+    if (!usuarioAtual) return;
+    
+    document.getElementById('edit-nome').value = usuarioAtual.nome;
+    document.getElementById('edit-telefone').value = usuarioAtual.telefone || "";
+    document.getElementById('edit-localizacao').value = usuarioAtual.localizacao || "";
+    document.getElementById('edit-formacao').value = usuarioAtual.formacao || "";
+    document.getElementById('edit-experiencia').value = usuarioAtual.experiencia || 0;
+    document.getElementById('edit-habilidades').value = usuarioAtual.habilidades || "";
+    document.getElementById('edit-ingles').value = usuarioAtual.ingles || "Nenhum";
+    
+    document.getElementById('msg-sucesso-perfil').style.display = 'none';
+    mostrarTela('tela-editar-perfil');
+}
+
+function salvarPerfil(event) {
+    event.preventDefault();
+    if (!usuarioAtual) return;
+
+    usuarioAtual.nome = document.getElementById('edit-nome').value;
+    usuarioAtual.telefone = document.getElementById('edit-telefone').value;
+    usuarioAtual.localizacao = document.getElementById('edit-localizacao').value;
+    usuarioAtual.formacao = document.getElementById('edit-formacao').value;
+    usuarioAtual.experiencia = parseInt(document.getElementById('edit-experiencia').value) || 0;
+    usuarioAtual.habilidades = document.getElementById('edit-habilidades').value;
+    usuarioAtual.ingles = document.getElementById('edit-ingles').value;
+
+    localStorage.setItem('vagaJusta_usuario', JSON.stringify(usuarioAtual));
+    
+    const msg = document.getElementById('msg-sucesso-perfil');
+    msg.style.display = 'block';
+    
+    setTimeout(() => {
+        msg.style.display = 'none';
+        mostrarTela('tela-perfil');
+    }, 2000);
+}
+
+// ==========================================
+// CURRÍCULO
+// ==========================================
+function selecionarCurriculo() {
+    const input = document.getElementById('input-curriculo');
+    const status = document.getElementById('status-curriculo');
+    const nomeArquivo = document.getElementById('nome-arquivo-curriculo');
+    
+    if (input.files && input.files.length > 0) {
+        nomeArquivo.innerText = input.files[0].name;
+        status.style.display = 'block';
+    } else {
+        status.style.display = 'none';
+    }
 }
 
 // ==========================================
@@ -639,5 +744,13 @@ function mostrarMsgDemonstrativa(checkbox) {
         setTimeout(() => {
             checkbox.checked = false; // Desmarca após mostrar o alerta
         }, 500);
+    }
+}
+
+function toggleContrasteConfig() {
+    const checkbox = document.getElementById('toggle-contraste');
+    if (checkbox) {
+        checkbox.checked = !checkbox.checked;
+        ativarContraste(checkbox.checked);
     }
 }
