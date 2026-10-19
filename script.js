@@ -88,669 +88,431 @@ const vagasDemonstracao = [
     }
 ];
 
+// Datas fixas e cidades fictícias permitem demonstrar ordenação e filtros.
+const datasPublicacao = ['2026-09-01', '2026-10-10', '2026-10-05', '2026-09-20', '2026-10-12', '2026-10-01'];
+vagasDemonstracao.forEach((vaga, i) => { vaga.publicadaEm = datasPublicacao[i]; });
+vagasDemonstracao[2].localizacao = 'Recife - PE';
+vagasDemonstracao[3].localizacao = 'São Paulo - SP';
+vagasDemonstracao[5].localizacao = 'Feira de Santana - BA';
+
 // ==========================================
-// VARIÁVEIS DE ESTADO
+// ESTADO E ARMAZENAMENTO LOCAL
+// Cada e-mail tem seu próprio perfil, favoritos e candidaturas.
+// Não há autenticação: qualquer pessoa neste navegador pode abrir os perfis.
 // ==========================================
-let usuarioAtual = null;
-let vagasFavoritas = [];
-let minhasCandidaturas = [];
+const CHAVE_DADOS = 'vagaJusta_dados_v2';
+const CHAVE_SESSAO = 'vagaJusta_sessao_v2';
+const $ = id => document.getElementById(id);
+let contas = [];
+let contaAtual = null;
+let historicoTelas = [];
 let vagaAtualParaCompatibilidade = null;
-let historicoTelas = []; // Para o botão de voltar
+let origemCompatibilidade = 'tela-vagas';
+let candidaturaSelecionada = null;
+let filtroVagas = 'Todas';
+let filtroCandidaturas = 'Todas';
+let preferencias = { altoContraste: false, textoMaior: false };
+let armazenamentoBloqueado = false;
 
-// ==========================================
-// INICIALIZAÇÃO
-// ==========================================
-window.onload = function() {
-    carregarDadosLocalStorage();
-    // Se o usuário já estiver "logado", vai direto para vagas
-    if (usuarioAtual) {
-        mostrarTela('tela-vagas');
-    }
-};
+function avisar(mensagem) {
+    const caixa = document.createElement('div');
+    caixa.className = 'notificacao';
+    const texto = document.createElement('p');
+    texto.textContent = mensagem;
+    const fechar = document.createElement('button');
+    fechar.type = 'button';
+    fechar.textContent = '×';
+    fechar.setAttribute('aria-label', 'Fechar mensagem');
+    fechar.onclick = () => caixa.remove();
+    caixa.append(texto, fechar);
+    $('area-notificacoes').replaceChildren(caixa);
+    // Permanece visível até ser fechada ou substituída, sem prazo para leitura.
+}
 
-function carregarDadosLocalStorage() {
-    const usuarioSalvo = localStorage.getItem('vagaJusta_usuario');
-    const favoritosSalvos = localStorage.getItem('vagaJusta_favoritos');
-    const candidaturasSalvas = localStorage.getItem('vagaJusta_candidaturas');
-    
-    // Acessibilidade
-    const altoContraste = localStorage.getItem('vagaJusta_altoContraste');
-    const textoMaior = localStorage.getItem('vagaJusta_textoMaior');
-
-    if (usuarioSalvo) usuarioAtual = JSON.parse(usuarioSalvo);
-    if (favoritosSalvos) vagasFavoritas = JSON.parse(favoritosSalvos);
-    if (candidaturasSalvas) minhasCandidaturas = JSON.parse(candidaturasSalvas);
-
-    if (altoContraste === 'true') {
-        document.getElementById('toggle-contraste').checked = true;
-        ativarContraste(true);
-    }
-    if (textoMaior === 'true') {
-        aumentarTexto();
+function ler(chave, padrao, validar = () => true) {
+    try {
+        const bruto = localStorage.getItem(chave);
+        if (bruto === null) return padrao;
+        const valor = JSON.parse(bruto);
+        if (!validar(valor)) throw new Error('Formato inválido');
+        return valor;
+    } catch {
+        armazenamentoBloqueado = true;
+        avisar('Não foi possível ler os dados salvos. Nada será sobrescrito. Verifique as permissões do navegador ou use outro navegador para a apresentação.');
+        return padrao;
     }
 }
 
+function gravar(chave, valor) {
+    if (armazenamentoBloqueado) {
+        avisar('Os dados não puderam ser salvos. O armazenamento está indisponível ou contém dados inválidos. Os dados anteriores foram preservados.');
+        return false;
+    }
+    try {
+        localStorage.setItem(chave, JSON.stringify(valor));
+        return true;
+    } catch {
+        avisar('Não foi possível salvar. Verifique o espaço e as permissões do navegador. A alteração não foi confirmada.');
+        return false;
+    }
+}
+
+const camposPerfil = ['nome', 'email', 'telefone', 'localizacao', 'formacao', 'experiencia', 'habilidades', 'ingles'];
+function perfilValido(p) {
+    return p && typeof p === 'object' && ['nome', 'email', 'formacao', 'habilidades', 'ingles'].every(c => typeof p[c] === 'string') &&
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email) && Number.isFinite(p.experiencia) && p.experiencia >= 0 && p.experiencia <= 60;
+}
+function contaValida(c) {
+    return c && perfilValido(c.perfil) && Array.isArray(c.favoritos) && c.favoritos.every(Number.isInteger) &&
+        Array.isArray(c.candidaturas) && c.candidaturas.every(a => a && Number.isInteger(a.idVaga) && typeof a.data === 'string' && typeof a.status === 'string');
+}
+function salvarContas(novas) {
+    if (!gravar(CHAVE_DADOS, novas)) return false;
+    contas = novas;
+    return true;
+}
+function atualizarConta(alteracao) {
+    if (!contaAtual) return false;
+    const nova = { ...contaAtual, ...alteracao };
+    if (!salvarContas(contas.map(c => c.perfil.email === contaAtual.perfil.email ? nova : c))) return false;
+    contaAtual = nova;
+    return true;
+}
+
+// Migra o perfil antigo sem apagar as chaves legadas (backup).
+// A versão anterior não guardava senha; somente os campos conhecidos são copiados.
+function carregarDados() {
+    contas = ler(CHAVE_DADOS, null, a => Array.isArray(a) && a.every(contaValida) && new Set(a.map(c => c.perfil.email)).size === a.length);
+    if (contas === null) {
+        contas = [];
+        const antigo = ler('vagaJusta_usuario', null, perfilValido);
+        if (antigo) {
+            const perfil = Object.fromEntries(camposPerfil.map(c => [c, antigo[c] ?? '']));
+            perfil.email = perfil.email.trim().toLowerCase();
+            const favoritos = ler('vagaJusta_favoritos', [], a => Array.isArray(a) && a.every(Number.isInteger));
+            const candidaturas = ler('vagaJusta_candidaturas', [], a => Array.isArray(a) && a.every(c => c && Number.isInteger(c.idVaga) && typeof c.data === 'string' && typeof c.status === 'string'));
+            if (salvarContas([{ perfil, favoritos, candidaturas }])) avisar('Perfil da versão anterior recuperado. Entre com o e-mail cadastrado; esta versão demonstrativa não usa senha.');
+        }
+    }
+    preferencias = ler('vagaJusta_preferencias_v2', {
+        altoContraste: ler('vagaJusta_altoContraste', false, v => typeof v === 'boolean'),
+        textoMaior: ler('vagaJusta_textoMaior', false, v => typeof v === 'boolean')
+    }, p => p && typeof p.altoContraste === 'boolean' && typeof p.textoMaior === 'boolean');
+    aplicarPreferencias();
+    const sessao = ler(CHAVE_SESSAO, null, s => s === null || typeof s === 'string');
+    contaAtual = contas.find(c => c.perfil.email === sessao) || null;
+    mostrarTela(contaAtual ? 'tela-vagas' : 'tela-inicial');
+}
+window.addEventListener('DOMContentLoaded', carregarDados);
+
 // ==========================================
-// NAVEGAÇÃO ENTRE TELAS
+// NAVEGAÇÃO — telas privadas exigem um perfil selecionado.
 // ==========================================
-// Mostra apenas a tela escolhida e esconde as outras
-function mostrarTela(idTela) {
-    // Esconde todas as telas
-    const telas = document.querySelectorAll('.tela');
-    telas.forEach(tela => {
-        tela.classList.remove('ativa');
+function mostrarTela(idTela, registrar = true) {
+    const publicas = ['tela-inicial', 'tela-login', 'tela-cadastro', 'tela-acessibilidade'];
+    if (!contaAtual && !publicas.includes(idTela)) idTela = 'tela-login';
+    const tela = $(idTela);
+    if (!tela) return;
+    document.querySelectorAll('.tela').forEach(t => t.classList.toggle('ativa', t === tela));
+    if (registrar && historicoTelas.at(-1) !== idTela) historicoTelas.push(idTela);
+    document.querySelectorAll('.nav-item').forEach(item => {
+        const ativo = item.id === idTela.replace('tela-', 'nav-');
+        item.classList.toggle('ativo', ativo);
+        if (ativo) item.setAttribute('aria-current', 'page'); else item.removeAttribute('aria-current');
     });
-
-    // Mostra a tela solicitada
-    const telaAtiva = document.getElementById(idTela);
-    if (telaAtiva) {
-        telaAtiva.classList.add('ativa');
-    }
-
-    // Salva o histórico para o botão voltar (evitando duplicatas seguidas)
-    if (historicoTelas.length === 0 || historicoTelas[historicoTelas.length - 1] !== idTela) {
-        historicoTelas.push(idTela);
-    }
-
-    // Atualiza a barra de navegação inferior se necessário
-    atualizarNavInferior(idTela);
-
-    // Executa ações específicas dependendo da tela
-    if (idTela === 'tela-vagas') {
-        renderizarVagas(vagasDemonstracao);
-    } else if (idTela === 'tela-perfil') {
-        preencherPerfil();
-    } else if (idTela === 'tela-favoritos') {
-        renderizarFavoritos();
-    } else if (idTela === 'tela-candidaturas') {
-        renderizarCandidaturas();
-    }
+    if (idTela === 'tela-vagas') buscarVagas();
+    if (idTela === 'tela-perfil') preencherPerfil();
+    if (idTela === 'tela-favoritos') renderizarFavoritos();
+    if (idTela === 'tela-candidaturas') renderizarCandidaturas();
+    document.title = `${tela.dataset.titulo} · Vaga Justa`;
+    const titulo = tela.querySelector('h1, h2');
+    if (titulo) { titulo.tabIndex = -1; titulo.focus({ preventScroll: true }); }
+    window.scrollTo(0, 0);
 }
-
 function voltarPaginaAnterior() {
-    if (historicoTelas.length > 1) {
-        historicoTelas.pop(); // Remove a atual
-        const telaAnterior = historicoTelas[historicoTelas.length - 1];
-        mostrarTela(telaAnterior);
-    } else {
-        mostrarTela('tela-inicial');
-    }
+    historicoTelas.pop();
+    mostrarTela(historicoTelas.at(-1) || (contaAtual ? 'tela-vagas' : 'tela-inicial'), false);
 }
-
-function atualizarNavInferior(idTela) {
-    const itens = document.querySelectorAll('.nav-item');
-    itens.forEach(item => item.classList.remove('ativo'));
-
-    if (idTela === 'tela-vagas') document.getElementById('nav-vagas-2').classList.add('ativo');
-    if (idTela === 'tela-candidaturas') document.getElementById('nav-candidaturas').classList.add('ativo');
-    if (idTela === 'tela-favoritos') document.getElementById('nav-favoritos').classList.add('ativo');
-    if (idTela === 'tela-perfil') document.getElementById('nav-perfil').classList.add('ativo');
+function voltarDaCompatibilidade() { mostrarTela(origemCompatibilidade); }
+function recuperarSenha() { avisar('Não usamos senha. Cadastre um perfil e entre com o mesmo e-mail neste navegador. Não há recuperação por e-mail nem sincronização entre aparelhos.'); }
+function fazerLoginGoogle() { avisar('Login com Google indisponível. Use um perfil demonstrativo cadastrado neste navegador.'); }
+function iniciarSessao(conta) {
+    if (!gravar(CHAVE_SESSAO, conta.perfil.email)) return false;
+    contaAtual = conta;
+    historicoTelas = [];
+    filtroVagas = 'Todas'; filtroCandidaturas = 'Todas';
+    $('input-busca').value = '';
+    mostrarTela('tela-vagas');
+    return true;
 }
-
-// ==========================================
-// LOGIN E CADASTRO
-// ==========================================
-function alternarSenha(idInput) {
-    const input = document.getElementById(idInput);
-    if (input.type === 'password') {
-        input.type = 'text';
-    } else {
-        input.type = 'password';
-    }
-}
-
 function fazerLogin(event) {
-    event.preventDefault(); // Impede o envio real do form
-    
-    // Como é um protótipo, criamos um usuário falso se não existir
-    if (!usuarioAtual) {
-        usuarioAtual = {
-            nome: "Usuário Teste",
-            email: document.getElementById('login-email').value,
-            telefone: "(71) 99999-9999",
-            localizacao: "Salvador - BA",
-            formacao: "Técnico em Informática",
-            experiencia: 2,
-            habilidades: "Atendimento, Informática, Excel",
-            ingles: "Básico"
-        };
-        localStorage.setItem('vagaJusta_usuario', JSON.stringify(usuarioAtual));
-    }
-    mostrarTela('tela-vagas');
+    event.preventDefault();
+    if (!$('form-login').reportValidity()) return;
+    const email = $('login-email').value.trim().toLowerCase();
+    const conta = contas.find(c => c.perfil.email === email);
+    if (!conta) { avisar('Nenhum perfil com este e-mail neste navegador. Confira o e-mail ou faça o cadastro.'); return; }
+    if (iniciarSessao(conta)) { $('form-login').reset(); avisar('Perfil demonstrativo aberto.'); }
 }
-
-function fazerLoginGoogle() {
-    alert("Opção demonstrativa do protótipo. Integraria com a conta do Google.");
-    mostrarTela('tela-vagas');
+function obterPerfil(prefixo) {
+    const perfil = {};
+    camposPerfil.forEach(c => { perfil[c] = $(`${prefixo}-${c}`).value.trim(); });
+    perfil.email = perfil.email.toLowerCase();
+    perfil.experiencia = Number(perfil.experiencia);
+    return perfil;
 }
-
+function validarFormulario(id) {
+    const form = $(id);
+    form.querySelectorAll('input').forEach(input => input.setCustomValidity(
+        input.required && !input.value.trim() ? 'Preencha este campo.' : ''));
+    return form.reportValidity();
+}
+// Limpa erros personalizados assim que o campo é corrigido.
+document.addEventListener('input', event => { if (event.target.setCustomValidity) event.target.setCustomValidity(''); });
 function criarConta(event) {
     event.preventDefault();
-    
-    const senha = document.getElementById('cad-senha').value;
-    const confirmarSenha = document.getElementById('cad-confirmar').value;
-
-    if (senha !== confirmarSenha) {
-        alert("As senhas não coincidem!");
-        return;
-    }
-
-    const novoUsuario = {
-        nome: document.getElementById('cad-nome').value,
-        email: document.getElementById('cad-email').value,
-        telefone: document.getElementById('cad-telefone').value,
-        localizacao: document.getElementById('cad-localizacao').value,
-        formacao: document.getElementById('cad-formacao').value,
-        experiencia: parseInt(document.getElementById('cad-experiencia').value),
-        habilidades: document.getElementById('cad-habilidades').value,
-        ingles: document.getElementById('cad-ingles').value
-    };
-
-    usuarioAtual = novoUsuario;
-    localStorage.setItem('vagaJusta_usuario', JSON.stringify(usuarioAtual));
-    
-    alert("Conta criada com sucesso!");
-    mostrarTela('tela-vagas');
+    if (!validarFormulario('form-cadastro')) return;
+    const perfil = obterPerfil('cad');
+    if (!perfilValido(perfil)) { avisar('Revise os dados do perfil.'); return; }
+    if (contas.some(c => c.perfil.email === perfil.email)) { avisar('Este e-mail já possui um perfil neste navegador. Entre pela tela de login.'); return; }
+    const conta = { perfil, favoritos: [], candidaturas: [] };
+    if (!salvarContas([...contas, conta])) return;
+    $('form-cadastro').reset();
+    if (iniciarSessao(conta)) avisar('Perfil demonstrativo criado e salvo neste navegador.');
 }
-
 function sairConta() {
-    usuarioAtual = null;
-    vagasFavoritas = [];
-    minhasCandidaturas = [];
-    localStorage.removeItem('vagaJusta_usuario');
-    localStorage.removeItem('vagaJusta_favoritos');
-    localStorage.removeItem('vagaJusta_candidaturas');
+    // Sair limpa somente a sessão, nunca o cadastro e seus dados.
+    try { localStorage.removeItem(CHAVE_SESSAO); }
+    catch { avisar('Não foi possível encerrar a sessão salva. Verifique as permissões do navegador.'); return; }
+    contaAtual = null;
+    vagaAtualParaCompatibilidade = null;
+    candidaturaSelecionada = null;
+    historicoTelas = [];
+    document.querySelectorAll('form').forEach(f => f.reset());
+    limparCurriculo();
     mostrarTela('tela-login');
+    avisar('Você saiu. Seu perfil, favoritos e candidaturas continuam salvos.');
 }
+function formatarTelefone(input) { input.value = input.value.replace(/[^\d+()\s-]/g, '').slice(0, 22); }
 
 // ==========================================
-// VAGAS E FILTROS
+// VAGAS, BUSCA E FAVORITOS
+// Texto dinâmico sempre usa textContent, sem interpretar HTML do usuário.
 // ==========================================
-function renderizarVagas(vagas) {
-    const container = document.getElementById('lista-vagas');
-    container.innerHTML = ''; // Limpa as vagas atuais
-
-    if (vagas.length === 0) {
-        container.innerHTML = '<p class="texto-central mt-20">Nenhuma vaga encontrada.</p>';
-        return;
-    }
-
+function normalizar(texto) { return String(texto ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/\s+/g, ' '); }
+function elemento(tag, classe, texto) {
+    const el = document.createElement(tag);
+    el.className = classe;
+    if (texto !== undefined) el.textContent = texto;
+    return el;
+}
+function botao(texto, classe, acao) {
+    const el = elemento('button', classe, texto); el.type = 'button'; el.onclick = acao; return el;
+}
+function dataLegivel(data) { return /^\d{4}-\d{2}-\d{2}$/.test(data) ? data.split('-').reverse().join('/') : data; }
+function cabecalhoVaga(vaga) {
+    const div = elemento('div', '');
+    div.append(elemento('h3', 'cargo', vaga.cargo), elemento('p', 'empresa', vaga.empresa), elemento('p', 'local', vaga.localizacao));
+    return div;
+}
+function renderizarVagas(vagas, container = $('lista-vagas')) {
+    container.replaceChildren();
+    if (!vagas.length) { container.append(elemento('p', 'texto-central mt-20', 'Nenhuma vaga encontrada aqui.')); return; }
     vagas.forEach(vaga => {
-        const ehFavorita = vagasFavoritas.includes(vaga.id);
-        const classeCoracao = ehFavorita ? 'btn-favorito ativo' : 'btn-favorito';
-        const iconeCoracao = ehFavorita ? '♥' : '♡';
-
-        const cardHTML = `
-            <div class="card-vaga">
-                <div class="card-cabecalho">
-                    <div>
-                        <h3 class="cargo">${vaga.cargo}</h3>
-                        <p class="empresa">${vaga.empresa}</p>
-                        <p class="local">${vaga.localizacao}</p>
-                    </div>
-                    <button class="${classeCoracao}" onclick="favoritarVaga(${vaga.id}, this)">${iconeCoracao}</button>
-                </div>
-                <div class="tags">
-                    <span class="tag">${vaga.modalidade}</span>
-                    <span class="tag verde">${vaga.contratacao}</span>
-                </div>
-                <button class="btn-compatibilidade" onclick="abrirCompatibilidade(${vaga.id})">Ver compatibilidade</button>
-            </div>
-        `;
-        container.innerHTML += cardHTML;
+        const favorito = contaAtual?.favoritos.includes(vaga.id);
+        const card = elemento('article', 'card-vaga');
+        const topo = elemento('div', 'card-cabecalho');
+        const coracao = botao(favorito ? '♥' : '♡', `btn-favorito${favorito ? ' ativo' : ''}`, () => favoritarVaga(vaga.id));
+        coracao.setAttribute('aria-label', `${favorito ? 'Remover dos' : 'Adicionar aos'} favoritos: ${vaga.cargo}`);
+        coracao.setAttribute('aria-pressed', String(favorito));
+        coracao.dataset.vagaFavorito = vaga.id;
+        topo.append(cabecalhoVaga(vaga), coracao);
+        const tags = elemento('div', 'tags');
+        tags.append(elemento('span', 'tag', vaga.modalidade), elemento('span', 'tag verde', vaga.contratacao));
+        card.append(topo, tags, elemento('p', 'local mb-10', `Publicação fictícia: ${dataLegivel(vaga.publicadaEm)}`), botao('Ver compatibilidade', 'btn-compatibilidade', () => abrirCompatibilidade(vaga.id)));
+        container.append(card);
     });
 }
-
+function sincronizarChips(atributo, valor) {
+    document.querySelectorAll(`[${atributo}]`).forEach(b => {
+        const ativo = b.getAttribute(atributo) === valor;
+        b.classList.toggle('ativo', ativo); b.setAttribute('aria-pressed', String(ativo));
+    });
+}
 function buscarVagas() {
-    const termoBusca = document.getElementById('input-busca').value.toLowerCase();
-    
-    const vagasFiltradas = vagasDemonstracao.filter(vaga => {
-        return vaga.cargo.toLowerCase().includes(termoBusca) || 
-               vaga.empresa.toLowerCase().includes(termoBusca) ||
-               vaga.localizacao.toLowerCase().includes(termoBusca);
-    });
-
-    renderizarVagas(vagasFiltradas);
+    const termo = normalizar($('input-busca').value);
+    let vagas = vagasDemonstracao.filter(v => normalizar([v.cargo, v.empresa, v.localizacao, ...v.requisitos.habilidades].join(' ')).includes(termo));
+    if (filtroVagas === 'Remoto') vagas = vagas.filter(v => v.modalidade === 'Remoto');
+    if (filtroVagas === 'Salvador - BA') vagas = vagas.filter(v => v.localizacao === 'Salvador - BA');
+    if (filtroVagas === 'Recentes') vagas.sort((a, b) => b.publicadaEm.localeCompare(a.publicadaEm));
+    sincronizarChips('data-filtro-vaga', filtroVagas);
+    renderizarVagas(vagas);
+    $('resumo-vagas').textContent = `${vagas.length} vaga(s) fictícia(s)${filtroVagas === 'Recentes' ? ' · mais novas primeiro' : ''}`;
 }
-
-function filtrarVagas(filtro, btnClicado) {
-    // Atualiza o visual dos botões
-    const chips = document.querySelectorAll('#tela-vagas .chip');
-    chips.forEach(chip => chip.classList.remove('ativo'));
-    btnClicado.classList.add('ativo');
-
-    // Filtra as vagas
-    let vagasFiltradas = vagasDemonstracao;
-
-    if (filtro === 'Remoto') {
-        vagasFiltradas = vagasDemonstracao.filter(v => v.modalidade === 'Remoto');
-    } else if (filtro === 'Salvador - BA') {
-        vagasFiltradas = vagasDemonstracao.filter(v => v.localizacao.includes('Salvador'));
-    }
-    // "Recentes" apenas mantém a mesma ordem na demonstração, ou poderia embaralhar
-
-    renderizarVagas(vagasFiltradas);
+function filtrarVagas(filtro) { filtroVagas = filtro; buscarVagas(); }
+function fecharTecladoAoPesquisar(event) { if (event.key === 'Enter') { event.preventDefault(); event.target.blur(); } }
+function favoritarVaga(id) {
+    if (!contaAtual) return;
+    const favoritos = contaAtual.favoritos.includes(id) ? contaAtual.favoritos.filter(v => v !== id) : [...contaAtual.favoritos, id];
+    if (!atualizarConta({ favoritos })) return;
+    const naListaFavoritos = $('tela-favoritos').classList.contains('ativa');
+    if (naListaFavoritos) renderizarFavoritos(); else buscarVagas();
+    const tela = document.querySelector('.tela.ativa');
+    (tela.querySelector(`[data-vaga-favorito="${id}"]`) || tela.querySelector('h2')).focus({ preventScroll: true });
+    avisar(favoritos.includes(id) ? 'Vaga adicionada aos favoritos.' : 'Vaga removida dos favoritos.');
 }
-
-function favoritarVaga(idVaga, botao) {
-    const index = vagasFavoritas.indexOf(idVaga);
-    
-    if (index > -1) {
-        // Remover dos favoritos
-        vagasFavoritas.splice(index, 1);
-        botao.classList.remove('ativo');
-        botao.innerHTML = '♡';
-    } else {
-        // Adicionar aos favoritos
-        vagasFavoritas.push(idVaga);
-        botao.classList.add('ativo');
-        botao.innerHTML = '♥';
-    }
-
-    // Salvar no localStorage
-    localStorage.setItem('vagaJusta_favoritos', JSON.stringify(vagasFavoritas));
-    
-    // Se estiver na tela de favoritos, re-renderizar
-    if (document.getElementById('tela-favoritos').classList.contains('ativa')) {
-        renderizarFavoritos();
-    }
-}
-
-function renderizarFavoritos() {
-    const container = document.getElementById('lista-favoritos');
-    container.innerHTML = '';
-
-    const vagasFiltradas = vagasDemonstracao.filter(vaga => vagasFavoritas.includes(vaga.id));
-
-    if (vagasFiltradas.length === 0) {
-        container.innerHTML = '<p class="texto-central mt-20">Você ainda não adicionou nenhuma vaga aos favoritos.</p>';
-        return;
-    }
-
-    // Aproveita a mesma função de renderização
-    vagasFiltradas.forEach(vaga => {
-        const cardHTML = `
-            <div class="card-vaga">
-                <div class="card-cabecalho">
-                    <div>
-                        <h3 class="cargo">${vaga.cargo}</h3>
-                        <p class="empresa">${vaga.empresa}</p>
-                        <p class="local">${vaga.localizacao}</p>
-                    </div>
-                    <button class="btn-favorito ativo" onclick="favoritarVaga(${vaga.id}, this)">♥</button>
-                </div>
-                <div class="tags">
-                    <span class="tag">${vaga.modalidade}</span>
-                    <span class="tag verde">${vaga.contratacao}</span>
-                </div>
-                <button class="btn-compatibilidade" onclick="abrirCompatibilidade(${vaga.id})">Ver compatibilidade</button>
-            </div>
-        `;
-        container.innerHTML += cardHTML;
-    });
-}
+function renderizarFavoritos() { renderizarVagas(vagasDemonstracao.filter(v => contaAtual?.favoritos.includes(v.id)), $('lista-favoritos')); }
 
 // ==========================================
-// COMPATIBILIDADE
+// COMPATIBILIDADE — função pura: recebe dados e devolve resultado.
+// Regras de equivalência explícitas, sem IA e sem comparação por trecho.
 // ==========================================
-function abrirCompatibilidade(idVaga) {
-    vagaAtualParaCompatibilidade = vagasDemonstracao.find(v => v.id === idVaga);
-    if (!vagaAtualParaCompatibilidade) return;
-
-    // Preenche cabeçalho
-    const cabecalho = document.getElementById('detalhes-vaga-compatibilidade');
-    cabecalho.innerHTML = `
-        <h3 class="cargo">${vagaAtualParaCompatibilidade.cargo}</h3>
-        <p class="empresa">${vagaAtualParaCompatibilidade.empresa}</p>
-        <p class="local">${vagaAtualParaCompatibilidade.localizacao}</p>
-    `;
-
-    // Calcula compatibilidade baseada no usuário atual
-    calcularCompatibilidade(vagaAtualParaCompatibilidade, usuarioAtual);
-
+const areasFormacao = {
+    Tecnologia: ['tecnologia', 'informatica', 'tecnico em informatica', 'ciencia da computacao', 'sistemas de informacao', 'analise e desenvolvimento de sistemas', 'engenharia de software'],
+    Administração: ['administracao', 'tecnico em administracao', 'bacharelado em administracao'],
+    Design: ['design', 'design grafico', 'tecnico em design grafico'],
+    'Recursos Humanos': ['recursos humanos', 'gestao de recursos humanos', 'tecnico em recursos humanos'],
+    'Ensino Médio': ['ensino medio', 'ensino medio completo']
+};
+function calcularCompatibilidade(vaga, candidato) {
+    const req = vaga.requisitos;
+    const formacao = normalizar(candidato.formacao);
+    const area = Object.keys(areasFormacao).find(a => areasFormacao[a].includes(formacao));
+    const formacaoOK = req.formacao === 'Ensino Médio' ? Boolean(area) : area === req.formacao;
+    const anos = Math.max(0, Number(candidato.experiencia) || 0);
+    const habilidades = new Set(normalizar(candidato.habilidades).split(/[,;\n]/).map(h => h.trim()).filter(Boolean));
+    const atendidas = req.habilidades.filter(h => habilidades.has(normalizar(h)));
+    const faltantes = req.habilidades.filter(h => !habilidades.has(normalizar(h)));
+    const niveis = ['nenhum', 'basico', 'intermediario', 'avancado'];
+    const ingles = Math.max(0, niveis.indexOf(normalizar(candidato.ingles)));
+    const exigido = Math.max(0, niveis.indexOf(normalizar(req.ingles)));
+    const criterios = [
+        { nome: 'Formação', maximo: 25, pontos: formacaoOK ? 25 : 0, atendido: formacaoOK, detalhe: `Área exigida: ${req.formacao}. Perfil: ${candidato.formacao || 'não informado'}.` },
+        { nome: 'Experiência', maximo: 25, pontos: req.experiencia === 0 ? 25 : 25 * Math.min(anos / req.experiencia, 1), atendido: anos >= req.experiencia, detalhe: `Exigência: ${req.experiencia} ano(s). Perfil: ${anos} ano(s).` },
+        { nome: 'Habilidades', maximo: 30, pontos: req.habilidades.length ? 30 * atendidas.length / req.habilidades.length : 30, atendido: faltantes.length === 0, detalhe: `Atendidas: ${atendidas.join(', ') || 'nenhuma'}. Faltantes: ${faltantes.join(', ') || 'nenhuma'}.` },
+        { nome: 'Inglês', maximo: 20, pontos: exigido === 0 ? 20 : 20 * Math.min(ingles / exigido, 1), atendido: ingles >= exigido, detalhe: `Exigência: ${req.ingles}. Perfil: ${candidato.ingles || 'Nenhum'}.` }
+    ];
+    return { pontos: Math.round(criterios.reduce((total, c) => total + c.pontos, 0)), criterios, atendidas, faltantes };
+}
+function abrirCompatibilidade(id) {
+    const vaga = vagasDemonstracao.find(v => v.id === id);
+    if (!vaga || !contaAtual) return;
+    const origem = document.querySelector('.tela.ativa').id;
+    if (origem !== 'tela-compatibilidade') origemCompatibilidade = origem;
+    vagaAtualParaCompatibilidade = vaga;
+    $('detalhes-vaga-compatibilidade').replaceChildren(cabecalhoVaga(vaga));
+    exibirCompatibilidade();
     mostrarTela('tela-compatibilidade');
 }
-
-// Calcula a compatibilidade entre candidato e vaga
-function calcularCompatibilidade(vaga, candidato) {
-    let pontos = 0;
-    const req = vaga.requisitos;
-    
-    let pontosFortes = [];
-    let pontosMelhorar = [];
-
-    // Se não tiver candidato logado, cria um genérico para não quebrar
-    const cand = candidato || { experiencia: 0, habilidades: "", formacao: "", ingles: "Nenhum" };
-
-    // 1. Experiência (25 pts)
-    if (cand.experiencia >= req.experiencia) {
-        pontos += 25;
-        pontosFortes.push("Experiência alinhada");
-    } else {
-        pontosMelhorar.push(`Exige ${req.experiencia} ano(s) de experiência`);
-    }
-
-    // 2. Formação (25 pts)
-    // Uma lógica simples: se alguma palavra chave bater, consideramos compatível
-    const formacaoCandidato = cand.formacao.toLowerCase();
-    const formacaoReq = req.formacao.toLowerCase();
-    
-    if (formacaoCandidato.includes(formacaoReq) || formacaoReq.includes("qualquer") || formacaoCandidato !== "") {
-        pontos += 25;
-        pontosFortes.push("Formação compatível");
-    } else {
-        pontosMelhorar.push(`Desejável formação em ${req.formacao}`);
-    }
-
-    // 3. Habilidades (30 pts)
-    let habilidadesBateram = 0;
-    const habilidadesCand = cand.habilidades.toLowerCase();
-    
-    req.habilidades.forEach(hab => {
-        if (habilidadesCand.includes(hab.toLowerCase())) {
-            habilidadesBateram++;
-        }
-    });
-
-    if (habilidadesBateram > 0) {
-        let proporcao = habilidadesBateram / req.habilidades.length;
-        pontos += Math.floor(30 * proporcao);
-        if (proporcao >= 0.5) {
-            pontosFortes.push("Habilidades técnicas aderentes");
-        } else {
-            pontosMelhorar.push("Aprimorar habilidades específicas");
-        }
-    } else {
-        pontosMelhorar.push(`Requisito: ${req.habilidades.join(', ')}`);
-    }
-
-    // 4. Inglês (20 pts)
-    const niveis = {"Nenhum": 0, "Básico": 1, "Intermediário": 2, "Avançado": 3};
-    const nivelCand = niveis[cand.ingles] || 0;
-    const nivelReq = niveis[req.ingles] || 0;
-
-    if (nivelCand >= nivelReq) {
-        pontos += 20;
-        pontosFortes.push(`Inglês ${cand.ingles} adequado`);
-    } else {
-        pontosMelhorar.push(`Necessário inglês ${req.ingles}`);
-    }
-
-    // Atualiza UI
-    if (pontos < 10) pontos = 10; // Mínimo pra não ficar 0 feio no gráfico
-    if (pontos > 100) pontos = 100;
-
-    document.getElementById('valor-compatibilidade').innerText = `${pontos}%`;
-    document.getElementById('circle-porcentagem').setAttribute('stroke-dasharray', `${pontos}, 100`);
-
-    // Atualiza listas
-    const listaFortes = document.getElementById('lista-pontos-fortes');
-    listaFortes.innerHTML = '';
-    pontosFortes.forEach(p => listaFortes.innerHTML += `<li>${p}</li>`);
-
-    const listaMelhorar = document.getElementById('lista-pontos-melhorar');
-    listaMelhorar.innerHTML = '';
-    pontosMelhorar.forEach(p => listaMelhorar.innerHTML += `<li>${p}</li>`);
-
-    // Verifica se já se candidatou
-    const btnCandidatar = document.getElementById('btn-candidatar');
-    const jaCandidatou = minhasCandidaturas.find(c => c.idVaga === vaga.id);
-    
-    if (jaCandidatou) {
-        btnCandidatar.innerText = "Candidatura já enviada";
-        btnCandidatar.style.backgroundColor = "var(--texto-cinza)";
-        btnCandidatar.disabled = true;
-    } else {
-        btnCandidatar.innerText = "Me candidatar";
-        btnCandidatar.style.backgroundColor = "var(--verde-principal)";
-        btnCandidatar.disabled = false;
-    }
+function preencherLista(id, textos) { $(id).replaceChildren(...textos.map(t => elemento('li', '', t))); }
+function exibirCompatibilidade() {
+    const resultado = calcularCompatibilidade(vagaAtualParaCompatibilidade, contaAtual.perfil);
+    $('valor-compatibilidade').textContent = `${resultado.pontos}%`;
+    $('circle-porcentagem').setAttribute('stroke-dasharray', `${resultado.pontos}, 100`);
+    $('circle-porcentagem').classList.toggle('vazio', resultado.pontos === 0);
+    $('grafico-compatibilidade').setAttribute('aria-label', `Compatibilidade estimada: ${resultado.pontos}%`);
+    $('faixa-compatibilidade').textContent = 'Comparação com os dados informados no perfil';
+    const fortes = resultado.criterios.filter(c => c.atendido).map(c => `${c.nome}: critério atendido.`);
+    if (resultado.atendidas.length && resultado.faltantes.length) fortes.push(`Habilidades reconhecidas: ${resultado.atendidas.join(', ')}.`);
+    const melhorar = resultado.criterios.filter(c => !c.atendido).map(c => `${c.nome}: ${c.detalhe}`);
+    if (!resultado.criterios[0].atendido) melhorar.push('Confira a grafia do curso nas sugestões do perfil. Cursos fora da lista precisam de revisão manual.');
+    preencherLista('lista-pontos-fortes', fortes.length ? fortes : ['Nenhum critério atendido com os dados informados.']);
+    preencherLista('lista-pontos-melhorar', melhorar.length ? melhorar : ['Todos os critérios desta regra foram atendidos. Isso não garante contratação.']);
+    preencherLista('lista-criterios', resultado.criterios.map(c => `${c.nome}: ${c.pontos.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}/${c.maximo} pontos · ${c.atendido ? 'Atendido' : c.pontos > 0 ? 'Parcial' : 'Não atendido'}. ${c.detalhe}`));
+    const jaEnviou = contaAtual.candidaturas.some(c => c.idVaga === vagaAtualParaCompatibilidade.id);
+    $('btn-candidatar').disabled = jaEnviou;
+    $('btn-candidatar').textContent = jaEnviou ? 'Candidatura já registrada' : 'Simular candidatura';
 }
 
 // ==========================================
-// CANDIDATURAS
+// CANDIDATURAS — registro local, sem envio a empresas.
 // ==========================================
 function candidatarSeAtual() {
-    if (!vagaAtualParaCompatibilidade || !usuarioAtual) return;
-
-    const jaCandidatou = minhasCandidaturas.find(c => c.idVaga === vagaAtualParaCompatibilidade.id);
-    if (jaCandidatou) {
-        alert("Você já se candidatou a esta vaga!");
-        return;
-    }
-
-    // Registra candidatura
-    const novaCandidatura = {
-        idVaga: vagaAtualParaCompatibilidade.id,
-        cargo: vagaAtualParaCompatibilidade.cargo,
-        empresa: vagaAtualParaCompatibilidade.empresa,
-        localizacao: vagaAtualParaCompatibilidade.localizacao,
-        data: new Date().toLocaleDateString('pt-BR'),
-        status: "Em análise" // Status padrão
-    };
-
-    minhasCandidaturas.push(novaCandidatura);
-    localStorage.setItem('vagaJusta_candidaturas', JSON.stringify(minhasCandidaturas));
-
-    alert("Candidatura enviada com sucesso! Boa sorte!");
-    
-    // Atualiza botão na hora
-    const btnCandidatar = document.getElementById('btn-candidatar');
-    btnCandidatar.innerText = "Candidatura já enviada";
-    btnCandidatar.style.backgroundColor = "var(--texto-cinza)";
-    btnCandidatar.disabled = true;
+    if (!contaAtual || !vagaAtualParaCompatibilidade) return;
+    const idVaga = vagaAtualParaCompatibilidade.id;
+    if (contaAtual.candidaturas.some(c => c.idVaga === idVaga)) { avisar('Você já registrou esta candidatura.'); return; }
+    const candidatura = { idVaga, data: new Date().toLocaleDateString('pt-BR'), status: 'Em análise' };
+    if (!atualizarConta({ candidaturas: [...contaAtual.candidaturas, candidatura] })) return;
+    exibirCompatibilidade();
+    avisar('Candidatura simulada e salva neste navegador. Nenhum dado foi enviado à empresa.');
 }
-
-function renderizarCandidaturas(filtroStatus = "Todas") {
-    const container = document.getElementById('lista-candidaturas');
-    container.innerHTML = '';
-
-    let candidaturasExibir = minhasCandidaturas;
-
-    if (filtroStatus !== "Todas") {
-        candidaturasExibir = minhasCandidaturas.filter(c => c.status === filtroStatus);
-    }
-
-    if (candidaturasExibir.length === 0) {
-        container.innerHTML = '<p class="texto-central mt-20">Você ainda não possui candidaturas aqui.</p>';
-        return;
-    }
-
-    candidaturasExibir.forEach(cand => {
-        let classeStatus = "status-candidatura";
-        if (cand.status === "Entrevista") classeStatus += " status-entrevista";
-
-        const cardHTML = `
-            <div class="card-vaga" style="cursor: pointer;" onclick="verDetalhesCandidatura(${cand.idVaga})">
-                <div class="card-cabecalho">
-                    <div>
-                        <h3 class="cargo">${cand.cargo}</h3>
-                        <p class="empresa">${cand.empresa}</p>
-                        <p class="local">${cand.localizacao}</p>
-                        <p class="local mt-10">Enviado em ${cand.data}</p>
-                    </div>
-                    <div>
-                        <span class="${classeStatus}">${cand.status}</span>
-                        <span style="color: var(--texto-cinza); margin-left: 5px;">></span>
-                    </div>
-                </div>
-            </div>
-        `;
-        container.innerHTML += cardHTML;
+function renderizarCandidaturas() {
+    sincronizarChips('data-filtro-candidatura', filtroCandidaturas);
+    const container = $('lista-candidaturas'); container.replaceChildren();
+    const candidaturas = contaAtual.candidaturas.filter(c => filtroCandidaturas === 'Todas' || c.status === filtroCandidaturas);
+    if (!candidaturas.length) container.append(elemento('p', 'texto-central mt-20', 'Nenhuma candidatura neste filtro.'));
+    candidaturas.forEach(c => {
+        const vaga = vagasDemonstracao.find(v => v.id === c.idVaga);
+        if (!vaga) return;
+        const card = elemento('article', 'card-vaga');
+        card.append(cabecalhoVaga(vaga), elemento('p', 'local mt-10', `Registrada em ${dataLegivel(c.data)}`), elemento('p', 'status-candidatura', `${c.status} · simulação`), botao('Ver detalhes', 'btn-compatibilidade mt-10', () => verDetalhesCandidatura(c.idVaga)));
+        container.append(card);
     });
 }
-
-function verDetalhesCandidatura(idVaga) {
-    const candidatura = minhasCandidaturas.find(c => c.idVaga === idVaga);
-    if (!candidatura) return;
-
-    const info = document.getElementById('info-detalhes-candidatura');
-    info.innerHTML = `
-        <h3 class="cargo">${candidatura.cargo}</h3>
-        <p class="empresa">${candidatura.empresa}</p>
-        <p class="local">${candidatura.localizacao}</p>
-        <p class="local mt-10">Enviado em ${candidatura.data}</p>
-        <div class="mt-10">
-            <span class="status-candidatura ${candidatura.status === 'Entrevista' ? 'status-entrevista' : ''}">${candidatura.status}</span>
-        </div>
-    `;
-
-    const lista = document.getElementById('lista-etapas-processo');
-    
-    let etapasHTML = `
-        <li style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-            <div style="width: 20px; height: 20px; border-radius: 50%; background-color: var(--verde-principal); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">✓</div>
-            <div style="flex: 1;">
-                <p style="font-weight: bold; font-size: 14px;">Candidatura enviada</p>
-                <p style="font-size: 12px; color: var(--texto-cinza);">${candidatura.data}</p>
-            </div>
-        </li>
-    `;
-    
-    const isEntrevistaOuFim = (candidatura.status === 'Entrevista' || candidatura.status === 'Finalizadas');
-    
-    etapasHTML += `
-        <li style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-            <div style="width: 20px; height: 20px; border-radius: 50%; background-color: var(--verde-principal); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">✓</div>
-            <div style="flex: 1;">
-                <p style="font-weight: bold; font-size: 14px;">Análise do perfil</p>
-            </div>
-        </li>
-    `;
-    
-    etapasHTML += `
-        <li style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-            <div style="width: 20px; height: 20px; border-radius: 50%; background-color: ${isEntrevistaOuFim ? 'var(--verde-principal)' : 'var(--borda)'}; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">${isEntrevistaOuFim ? '✓' : ''}</div>
-            <div style="flex: 1;">
-                <p style="font-weight: ${isEntrevistaOuFim ? 'bold' : 'normal'}; font-size: 14px; color: ${isEntrevistaOuFim ? 'var(--texto-escuro)' : 'var(--texto-cinza)'};">Entrevista com RH</p>
-            </div>
-        </li>
-    `;
-
-    lista.innerHTML = etapasHTML;
+function filtrarCandidaturas(status) { filtroCandidaturas = status; renderizarCandidaturas(); }
+function verDetalhesCandidatura(id) {
+    const c = contaAtual?.candidaturas.find(c => c.idVaga === id);
+    const vaga = vagasDemonstracao.find(v => v.id === id);
+    if (!c || !vaga) return;
+    candidaturaSelecionada = id;
+    $('info-detalhes-candidatura').replaceChildren(cabecalhoVaga(vaga), elemento('p', 'local mt-10', `Registrada em ${dataLegivel(c.data)} · ${c.status} (simulação)`));
+    preencherLista('lista-etapas-processo', [
+        `Registro local concluído em ${dataLegivel(c.data)}.`,
+        c.status === 'Em análise' ? 'Análise do perfil: pendente na simulação.' : 'Análise: sem conclusão registrada.',
+        c.status === 'Entrevista' ? 'Entrevista: status ilustrativo, sem data ou convite real.' : 'Entrevista: não agendada.',
+        c.status === 'Finalizadas' ? 'Processo finalizado na simulação. Nenhum resultado de contratação informado.' : 'Conclusão: não registrada.'
+    ]);
     mostrarTela('tela-detalhes-candidatura');
 }
-
-function filtrarCandidaturas(status, btnClicado) {
-    const chips = document.querySelectorAll('#tela-candidaturas .chip');
-    chips.forEach(chip => chip.classList.remove('ativo'));
-    btnClicado.classList.add('ativo');
-
-    renderizarCandidaturas(status);
-}
+function abrirVagaDaCandidatura() { abrirCompatibilidade(candidaturaSelecionada); }
 
 // ==========================================
-// PERFIL
+// PERFIL, CURRÍCULO E ACESSIBILIDADE
 // ==========================================
 function preencherPerfil() {
-    if (!usuarioAtual) return;
-
-    document.getElementById('perfil-nome-display').innerText = usuarioAtual.nome;
-    document.getElementById('perfil-email-display').innerText = usuarioAtual.email;
-    document.getElementById('perfil-telefone-display').innerText = usuarioAtual.telefone || "-";
-    document.getElementById('perfil-localizacao-display').innerText = usuarioAtual.localizacao || "-";
-    document.getElementById('perfil-formacao-display').innerText = usuarioAtual.formacao || "-";
-    document.getElementById('perfil-experiencia-display').innerText = `${usuarioAtual.experiencia} anos` || "0 anos";
-    document.getElementById('perfil-habilidades-display').innerText = usuarioAtual.habilidades || "-";
-    document.getElementById('perfil-ingles-display').innerText = usuarioAtual.ingles || "-";
+    if (!contaAtual) return;
+    const p = contaAtual.perfil;
+    camposPerfil.forEach(c => { const el = $(`perfil-${c}-display`); if (el) el.textContent = c === 'experiencia' ? `${p[c]} ano(s)` : p[c] || 'Não informado'; });
+    $('perfil-iniciais').textContent = p.nome.split(/\s+/).filter(Boolean).slice(0, 2).map(n => n[0]).join('').toUpperCase();
+    $('perfil-resumo').textContent = `${contaAtual.favoritos.length} favorito(s) · ${contaAtual.candidaturas.length} candidatura(s)`;
 }
-
 function abrirEditarPerfil() {
-    if (!usuarioAtual) return;
-    
-    document.getElementById('edit-nome').value = usuarioAtual.nome;
-    document.getElementById('edit-telefone').value = usuarioAtual.telefone || "";
-    document.getElementById('edit-localizacao').value = usuarioAtual.localizacao || "";
-    document.getElementById('edit-formacao').value = usuarioAtual.formacao || "";
-    document.getElementById('edit-experiencia').value = usuarioAtual.experiencia || 0;
-    document.getElementById('edit-habilidades').value = usuarioAtual.habilidades || "";
-    document.getElementById('edit-ingles').value = usuarioAtual.ingles || "Nenhum";
-    
-    document.getElementById('msg-sucesso-perfil').style.display = 'none';
+    if (!contaAtual) return;
+    camposPerfil.forEach(c => { $(`edit-${c}`).value = contaAtual.perfil[c] ?? ''; });
     mostrarTela('tela-editar-perfil');
 }
-
 function salvarPerfil(event) {
     event.preventDefault();
-    if (!usuarioAtual) return;
-
-    usuarioAtual.nome = document.getElementById('edit-nome').value;
-    usuarioAtual.telefone = document.getElementById('edit-telefone').value;
-    usuarioAtual.localizacao = document.getElementById('edit-localizacao').value;
-    usuarioAtual.formacao = document.getElementById('edit-formacao').value;
-    usuarioAtual.experiencia = parseInt(document.getElementById('edit-experiencia').value) || 0;
-    usuarioAtual.habilidades = document.getElementById('edit-habilidades').value;
-    usuarioAtual.ingles = document.getElementById('edit-ingles').value;
-
-    localStorage.setItem('vagaJusta_usuario', JSON.stringify(usuarioAtual));
-    
-    const msg = document.getElementById('msg-sucesso-perfil');
-    msg.style.display = 'block';
-    
-    setTimeout(() => {
-        msg.style.display = 'none';
-        mostrarTela('tela-perfil');
-    }, 2000);
+    if (!contaAtual || !validarFormulario('form-editar-perfil')) return;
+    const perfil = obterPerfil('edit'); perfil.email = contaAtual.perfil.email;
+    if (!perfilValido(perfil) || !atualizarConta({ perfil })) return;
+    mostrarTela('tela-perfil'); avisar('Perfil salvo. As próximas comparações usarão estes dados.');
 }
-
-// ==========================================
-// CURRÍCULO
-// ==========================================
 function selecionarCurriculo() {
-    const input = document.getElementById('input-curriculo');
-    const status = document.getElementById('status-curriculo');
-    const nomeArquivo = document.getElementById('nome-arquivo-curriculo');
-    
-    if (input.files && input.files.length > 0) {
-        nomeArquivo.innerText = input.files[0].name;
-        status.style.display = 'block';
-    } else {
-        status.style.display = 'none';
+    const arquivo = $('input-curriculo').files[0];
+    if (!arquivo) return;
+    if (!/\.pdf$/i.test(arquivo.name) || (arquivo.type && arquivo.type !== 'application/pdf') || arquivo.size > 5 * 1024 * 1024 || arquivo.size === 0) {
+        limparCurriculo(); avisar('Selecione um PDF não vazio de até 5 MB.'); return;
     }
+    $('nome-arquivo-curriculo').textContent = arquivo.name;
+    $('tamanho-arquivo-curriculo').textContent = `${(arquivo.size / 1024).toFixed(1)} KB · seleção demonstrativa`;
+    $('status-curriculo').hidden = false;
+    avisar('PDF selecionado apenas para demonstração. Seu conteúdo não é lido nem usado no cálculo.');
 }
-
-// ==========================================
-// ACESSIBILIDADE
-// ==========================================
-function ativarContraste(ativo) {
-    if (ativo) {
-        document.body.classList.add('alto-contraste');
-        localStorage.setItem('vagaJusta_altoContraste', 'true');
-    } else {
-        document.body.classList.remove('alto-contraste');
-        localStorage.setItem('vagaJusta_altoContraste', 'false');
-    }
+function limparCurriculo() {
+    $('input-curriculo').value = ''; $('status-curriculo').hidden = true;
+    $('nome-arquivo-curriculo').textContent = ''; $('tamanho-arquivo-curriculo').textContent = '';
 }
-
-let estadoTextoMaior = false;
-function aumentarTexto() {
-    estadoTextoMaior = !estadoTextoMaior;
-    const btnTextMaior = document.getElementById('btn-texto-maior');
-
-    if (estadoTextoMaior) {
-        document.body.classList.add('texto-maior');
-        localStorage.setItem('vagaJusta_textoMaior', 'true');
-        if(btnTextMaior) btnTextMaior.classList.add('ativo');
-    } else {
-        document.body.classList.remove('texto-maior');
-        localStorage.setItem('vagaJusta_textoMaior', 'false');
-        if(btnTextMaior) btnTextMaior.classList.remove('ativo');
-    }
+function definirPreferencia(nome, valor) {
+    if (!Object.hasOwn(preferencias, nome)) return;
+    const novas = { ...preferencias, [nome]: Boolean(valor) };
+    if (gravar('vagaJusta_preferencias_v2', novas)) preferencias = novas;
+    aplicarPreferencias();
 }
-
-function mostrarMsgDemonstrativa(checkbox) {
-    if (checkbox.checked) {
-        alert("Opção demonstrativa do protótipo acadêmico. A funcionalidade real exigiria integração com recursos do sistema operacional.");
-        setTimeout(() => {
-            checkbox.checked = false; // Desmarca após mostrar o alerta
-        }, 500);
-    }
-}
-
-function toggleContrasteConfig() {
-    const checkbox = document.getElementById('toggle-contraste');
-    if (checkbox) {
-        checkbox.checked = !checkbox.checked;
-        ativarContraste(checkbox.checked);
-    }
+function aplicarPreferencias() {
+    document.documentElement.style.fontSize = preferencias.textoMaior ? '20px' : '16px';
+    document.body.classList.toggle('alto-contraste', preferencias.altoContraste);
+    document.body.classList.toggle('texto-maior', preferencias.textoMaior);
+    document.querySelectorAll('[data-preferencia]').forEach(el => { el.checked = preferencias[el.dataset.preferencia]; });
+    document.querySelectorAll('[data-estado-preferencia]').forEach(el => { el.textContent = preferencias[el.dataset.estadoPreferencia] ? 'Ligado' : 'Desligado'; });
+    sincronizarChips('data-tamanho-texto', preferencias.textoMaior ? 'maior' : 'padrao');
 }
