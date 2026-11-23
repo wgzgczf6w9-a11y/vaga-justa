@@ -707,13 +707,6 @@ function salvarPerfil(event) {
     if (!perfilValido(perfil) || !atualizarConta({ perfil })) return;
     mostrarTela('tela-perfil'); avisar('Perfil salvo. As próximas comparações usarão estes dados.');
 }
-function abrirSeletorCurriculo() {
-    // Em iPhones, salvar a tela antes de abrir Arquivos evita perder o contexto se o Safari recarregar ao retornar.
-    guardarTelaAtiva('tela-curriculo');
-    const input = $('input-curriculo');
-    input.value = '';
-    input.click();
-}
 function selecionarCurriculo() {
     const arquivo = $('input-curriculo').files[0];
     if (!arquivo) return;
