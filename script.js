@@ -102,6 +102,7 @@ vagasDemonstracao[5].localizacao = 'Feira de Santana - BA';
 // ==========================================
 const CHAVE_DADOS = 'vagaJusta_dados_v2';
 const CHAVE_SESSAO = 'vagaJusta_sessao_v2';
+const CHAVE_TELA_ATIVA = 'vagaJusta_tela_ativa_v2';
 const $ = id => document.getElementById(id);
 let contas = [];
 let contaAtual = null;
@@ -207,7 +208,8 @@ function carregarDados() {
     aplicarPreferencias();
     const sessao = ler(CHAVE_SESSAO, null, s => s === null || typeof s === 'string');
     contaAtual = contas.find(c => c.perfil.email === sessao) || null;
-    mostrarTela(contaAtual ? 'tela-vagas' : 'tela-inicial');
+    const telaGuardada = lerTelaAtiva();
+    mostrarTela(contaAtual && telaGuardada ? telaGuardada : (contaAtual ? 'tela-vagas' : 'tela-inicial'));
 }
 window.addEventListener('DOMContentLoaded', carregarDados);
 
@@ -219,6 +221,7 @@ function mostrarTela(idTela, registrar = true) {
     if (!contaAtual && !publicas.includes(idTela)) idTela = 'tela-login';
     const tela = $(idTela);
     if (!tela) return;
+    guardarTelaAtiva(idTela);
     document.querySelectorAll('.tela').forEach(t => t.classList.toggle('ativa', t === tela));
     if (registrar && historicoTelas.at(-1) !== idTela) historicoTelas.push(idTela);
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -235,6 +238,15 @@ function mostrarTela(idTela, registrar = true) {
     const titulo = tela.querySelector('h1, h2');
     if (titulo) { titulo.tabIndex = -1; titulo.focus({ preventScroll: true }); }
     window.scrollTo(0, 0);
+}
+function guardarTelaAtiva(idTela) {
+    try { sessionStorage.setItem(CHAVE_TELA_ATIVA, idTela); } catch { /* A navegação continua mesmo sem sessionStorage. */ }
+}
+function lerTelaAtiva() {
+    try {
+        const tela = sessionStorage.getItem(CHAVE_TELA_ATIVA);
+        return tela && $(tela) ? tela : null;
+    } catch { return null; }
 }
 function voltarPaginaAnterior() {
     historicoTelas.pop();
@@ -694,6 +706,13 @@ function salvarPerfil(event) {
     const perfil = obterPerfil('edit'); perfil.email = contaAtual.perfil.email;
     if (!perfilValido(perfil) || !atualizarConta({ perfil })) return;
     mostrarTela('tela-perfil'); avisar('Perfil salvo. As próximas comparações usarão estes dados.');
+}
+function abrirSeletorCurriculo() {
+    // Em iPhones, salvar a tela antes de abrir Arquivos evita perder o contexto se o Safari recarregar ao retornar.
+    guardarTelaAtiva('tela-curriculo');
+    const input = $('input-curriculo');
+    input.value = '';
+    input.click();
 }
 function selecionarCurriculo() {
     const arquivo = $('input-curriculo').files[0];
