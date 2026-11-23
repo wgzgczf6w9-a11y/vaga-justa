@@ -851,6 +851,7 @@ button:disabled { opacity: .65; cursor: default; }
 .cartao-resumo strong { display: block; margin-bottom: 6px; }
 .simulador-processo { border: 1px dashed var(--borda); border-radius: 10px; padding: 14px; background: var(--fundo-cinza); }
 .simulador-processo summary { cursor: pointer; font-weight: 600; }
+.simulador-processo h3 { color: var(--verde-principal); font-size: 1rem; margin: 0; }
 .simulador-processo p { margin: 10px 0; color: var(--texto-cinza); font-size: .8125rem; line-height: 1.5; }
 .acoes-simulacao { display: flex; flex-wrap: wrap; gap: 8px; }
 .btn-contorno { border: 1px solid var(--verde-principal); color: var(--verde-principal); border-radius: 8px; padding: 10px 12px; font: inherit; font-size: .8125rem; min-height: 44px; }

@@ -86,7 +86,7 @@ As habilidades devem ser separadas por vírgula (também são aceitos ponto e v�
 
 ## Candidaturas, revisão e currículo
 
-A candidatura guarda a vaga, a data, a compatibilidade do momento do envio e o status ilustrativo. Começa em “Em análise”; não muda automaticamente nem cria entrevistas. Em **Ferramentas de demonstração**, nos detalhes, é possível ilustrar os outros status sem envolver empresas reais. Cada mudança fica no histórico local e é identificada como simulação.
+A candidatura guarda a vaga, a data, a compatibilidade do momento do envio e o status. Ela começa em “Em análise”. Em **Análise de candidatura**, nos detalhes, o sistema aplica as mesmas regras de compatibilidade registradas no envio: 75% ou mais indica a próxima etapa, de 45% a 74% mantém a candidatura em análise, e abaixo de 45% registra “Não selecionada”. O resultado e a data ficam no histórico local.
 
 Quando uma candidatura está como **Não selecionada**, aparece a opção **Contestar decisão**. Ela abre uma solicitação de revisão com texto de 20 a 500 caracteres e anexo opcional (PDF, JPG ou PNG até 5 MB). O arquivo não é enviado nem guardado: apenas seu nome é exibido no registro. A solicitação fica marcada como “Recebida para revisão (simulação)” e não altera automaticamente o resultado. O botão de baixar resumo cria um arquivo de texto local, também identificado como simulação.
 

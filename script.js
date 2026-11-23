@@ -334,7 +334,7 @@ function renderizarVagas(vagas, container = $('lista-vagas')) {
         topo.append(cabecalhoVaga(vaga), coracao);
         const tags = elemento('div', 'tags');
         tags.append(elemento('span', 'tag', vaga.modalidade), elemento('span', 'tag verde', vaga.contratacao));
-        card.append(topo, tags, elemento('p', 'local mb-10', `Publicação fictícia: ${dataLegivel(vaga.publicadaEm)}`), botao('Ver compatibilidade', 'btn-compatibilidade', () => abrirCompatibilidade(vaga.id)));
+        card.append(topo, tags, elemento('p', 'local mb-10', `Publicada em ${dataLegivel(vaga.publicadaEm)}`), botao('Ver compatibilidade', 'btn-compatibilidade', () => abrirCompatibilidade(vaga.id)));
         container.append(card);
     });
 }
@@ -352,7 +352,7 @@ function buscarVagas() {
     if (filtroVagas === 'Recentes') vagas.sort((a, b) => b.publicadaEm.localeCompare(a.publicadaEm));
     sincronizarChips('data-filtro-vaga', filtroVagas);
     renderizarVagas(vagas);
-    $('resumo-vagas').textContent = `${vagas.length} vaga(s) fictícia(s)${filtroVagas === 'Recentes' ? ' · mais novas primeiro' : ''}`;
+    $('resumo-vagas').textContent = `${vagas.length} oportunidade(s) encontrada(s)${filtroVagas === 'Recentes' ? ' · mais novas primeiro' : ''}`;
 }
 function filtrarVagas(filtro) { filtroVagas = filtro; buscarVagas(); }
 function fecharTecladoAoPesquisar(event) { if (event.key === 'Enter') { event.preventDefault(); event.target.blur(); } }
@@ -422,11 +422,11 @@ function exibirCompatibilidade() {
     const melhorar = resultado.criterios.filter(c => !c.atendido).map(c => `${c.nome}: ${c.detalhe}`);
     if (!resultado.criterios[0].atendido) melhorar.push('Confira a grafia do curso nas sugestões do perfil. Cursos fora da lista precisam de revisão manual.');
     preencherLista('lista-pontos-fortes', fortes.length ? fortes : ['Nenhum critério atendido com os dados informados.']);
-    preencherLista('lista-pontos-melhorar', melhorar.length ? melhorar : ['Todos os critérios desta regra foram atendidos. Isso não garante contratação.']);
+    preencherLista('lista-pontos-melhorar', melhorar.length ? melhorar : ['Seu perfil atende a todos os critérios cadastrados para esta oportunidade.']);
     preencherLista('lista-criterios', resultado.criterios.map(c => `${c.nome}: ${c.pontos.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}/${c.maximo} pontos · ${c.atendido ? 'Atendido' : c.pontos > 0 ? 'Parcial' : 'Não atendido'}. ${c.detalhe}`));
     const jaEnviou = contaAtual.candidaturas.some(c => c.idVaga === vagaAtualParaCompatibilidade.id);
     $('btn-candidatar').disabled = jaEnviou;
-    $('btn-candidatar').textContent = jaEnviou ? 'Candidatura já registrada' : 'Simular candidatura';
+    $('btn-candidatar').textContent = jaEnviou ? 'Candidatura já registrada' : 'Candidatar-se';
 }
 
 // ==========================================
@@ -446,7 +446,7 @@ function candidatarSeAtual() {
     };
     if (!atualizarConta({ candidaturas: [...contaAtual.candidaturas, candidatura] })) return;
     exibirCompatibilidade();
-    avisar('Candidatura simulada e salva neste navegador. Nenhum dado foi enviado à empresa.');
+    avisar('Candidatura registrada com sucesso. Acompanhe o andamento em Minhas Candidaturas.');
 }
 function renderizarCandidaturas() {
     sincronizarChips('data-filtro-candidatura', filtroCandidaturas);
@@ -462,7 +462,7 @@ function renderizarCandidaturas() {
         const vaga = vagasDemonstracao.find(v => v.id === c.idVaga);
         if (!vaga) return;
         const card = elemento('article', 'card-vaga');
-        const status = elemento('p', `status-candidatura ${classeStatus(c.status)}`, `${c.status} · simulação`);
+        const status = elemento('p', `status-candidatura ${classeStatus(c.status)}`, c.status);
         card.append(cabecalhoVaga(vaga), elemento('p', 'local mt-10', `Registrada em ${dataLegivel(c.data)}`));
         if (Number.isInteger(c.compatibilidade)) card.append(elemento('p', 'texto-pequeno', `Compatibilidade no envio: ${c.compatibilidade}%`));
         card.append(status, botao('Ver detalhes', 'btn-compatibilidade mt-10', () => verDetalhesCandidatura(c.idVaga)));
@@ -503,21 +503,73 @@ function verDetalhesCandidatura(id) {
     const vaga = vagasDemonstracao.find(v => v.id === id);
     if (!c || !vaga) return;
     candidaturaSelecionada = id;
-    const status = elemento('p', `status-candidatura ${classeStatus(c.status)}`, `${c.status} · simulação`);
+    const status = elemento('p', `status-candidatura ${classeStatus(c.status)}`, c.status);
     $('info-detalhes-candidatura').replaceChildren(cabecalhoVaga(vaga), elemento('p', 'local mt-10', `Registrada em ${dataLegivel(c.data)}.`), status);
     const etapas = (Array.isArray(c.historico) && c.historico.length)
         ? c.historico.map(item => `${item.etapa} em ${dataLegivel(item.data)}.`)
         : [`Candidatura registrada localmente em ${dataLegivel(c.data)}.`];
     if (Number.isInteger(c.compatibilidade)) etapas.push(`Compatibilidade registrada no envio: ${c.compatibilidade}%.`);
-    if (c.status === 'Em análise') etapas.push('Análise do perfil: pendente na simulação.');
-    if (c.status === 'Entrevista') etapas.push('Entrevista: status ilustrativo, sem data ou convite real.');
-    if (c.status === 'Não selecionada') etapas.push('Decisão demonstrativa: candidatura não selecionada nesta simulação. Você pode registrar uma solicitação de revisão.');
-    if (c.status === 'Finalizada') etapas.push('Processo finalizado na simulação, sem resultado de contratação informado.');
+    if (c.status === 'Em análise') etapas.push('Análise de perfil pendente.');
+    if (c.status === 'Entrevista') etapas.push('Perfil indicado para a próxima etapa.');
+    if (c.status === 'Não selecionada') etapas.push('A candidatura não foi selecionada. Você pode solicitar uma revisão da decisão.');
+    if (c.status === 'Finalizada') etapas.push('Processo encerrado.');
     if (c.contestacao) etapas.push(`Solicitação de revisão registrada em ${dataLegivel(c.contestacao.data)}: ${c.contestacao.status}.`);
     preencherLista('lista-etapas-processo', etapas);
+    preencherPainelAnalise(c, vaga);
     mostrarTela('tela-detalhes-candidatura');
 }
 function abrirVagaDaCandidatura() { abrirCompatibilidade(candidaturaSelecionada); }
+function resultadoDaAnalise(compatibilidade) {
+    if (compatibilidade >= 75) return {
+        status: 'Entrevista',
+        titulo: 'Perfil recomendado para a próxima etapa',
+        texto: 'O perfil apresentou alta aderência aos requisitos cadastrados para a oportunidade.'
+    };
+    if (compatibilidade >= 45) return {
+        status: 'Em análise',
+        titulo: 'Perfil em análise',
+        texto: 'O perfil possui aderência parcial. Atualize suas informações e acompanhe novas oportunidades.'
+    };
+    return {
+        status: 'Não selecionada',
+        titulo: 'Resultado da análise',
+        texto: 'O perfil ainda não atingiu os requisitos prioritários desta oportunidade. Consulte as sugestões de desenvolvimento e, se necessário, solicite uma revisão.'
+    };
+}
+function preencherPainelAnalise(candidatura, vaga) {
+    const painel = $('painel-analise-candidatura');
+    const resultado = $('resultado-analise-candidatura');
+    const botao = $('btn-analisar-candidatura');
+    if (!painel || !resultado || !botao) return;
+    const concluiu = Boolean(candidatura.analise);
+    const compatibilidade = Number.isInteger(candidatura.compatibilidade)
+        ? candidatura.compatibilidade
+        : calcularCompatibilidade(vaga, contaAtual.perfil).pontos;
+    $('texto-analise-candidatura').textContent = concluiu
+        ? 'Resultado gerado a partir da compatibilidade registrada no envio da candidatura.'
+        : `Compatibilidade registrada: ${compatibilidade}%. Conclua a análise para atualizar o andamento.`;
+    resultado.hidden = !concluiu;
+    resultado.replaceChildren();
+    if (concluiu) {
+        resultado.append(elemento('strong', '', candidatura.analise.titulo), elemento('p', '', candidatura.analise.texto));
+    }
+    botao.hidden = concluiu;
+    botao.disabled = concluiu;
+}
+function executarAnaliseCandidatura() {
+    const c = contaAtual?.candidaturas.find(item => item.idVaga === candidaturaSelecionada);
+    const vaga = vagasDemonstracao.find(item => item.id === candidaturaSelecionada);
+    if (!c || !vaga || c.analise) return;
+    const compatibilidade = Number.isInteger(c.compatibilidade)
+        ? c.compatibilidade
+        : calcularCompatibilidade(vaga, contaAtual.perfil).pontos;
+    const analise = resultadoDaAnalise(compatibilidade);
+    const historico = Array.isArray(c.historico) ? c.historico : [{ etapa: 'Candidatura registrada', data: c.data }];
+    historico.push({ etapa: analise.titulo, data: new Date().toLocaleDateString('pt-BR') });
+    if (!atualizarCandidatura(c.idVaga, { status: analise.status, analise, historico })) return;
+    avisar('Análise concluída. O andamento da candidatura foi atualizado.');
+    verDetalhesCandidatura(c.idVaga);
+}
 function simularStatusCandidatura(status) {
     const c = contaAtual?.candidaturas.find(item => item.idVaga === candidaturaSelecionada);
     if (!c) return;
@@ -541,14 +593,14 @@ function selecionarAnexoContestacao() {
         avisar('Selecione um PDF, JPG ou PNG não vazio de até 5 MB.');
         return;
     }
-    $('nome-anexo-contestacao').textContent = `${arquivo.name} · anexo demonstrativo`;
+    $('nome-anexo-contestacao').textContent = arquivo.name;
 }
 function abrirContestacao(id) {
     const c = contaAtual?.candidaturas.find(item => item.idVaga === id);
     const vaga = vagasDemonstracao.find(item => item.id === id);
-    if (!c || !vaga || c.status !== 'Não selecionada') { avisar('A solicitação de revisão só pode ser demonstrada para uma candidatura não selecionada.'); return; }
+    if (!c || !vaga || c.status !== 'Não selecionada') { avisar('A solicitação de revisão está disponível para candidaturas não selecionadas.'); return; }
     candidaturaSelecionada = id;
-    $('info-contestacao').replaceChildren(cabecalhoVaga(vaga), elemento('p', 'local mt-10', `Decisão demonstrativa: não selecionada.`));
+    $('info-contestacao').replaceChildren(cabecalhoVaga(vaga), elemento('p', 'local mt-10', 'Resultado: não selecionada.'));
     const motivo = $('motivo-contestacao');
     const resumo = $('resumo-contestacao');
     $('form-contestacao').reset();
@@ -584,10 +636,10 @@ function enviarContestacao(event) {
         motivo,
         anexoNome: arquivo?.name || '',
         data: new Date().toLocaleDateString('pt-BR'),
-        status: 'Recebida para revisão (simulação)'
+        status: 'Em revisão'
     };
     if (!atualizarCandidatura(c.idVaga, { contestacao })) return;
-    avisar('Solicitação de revisão registrada neste navegador. Nenhum dado foi enviado a empresas.');
+    avisar('Solicitação de revisão registrada com sucesso.');
     abrirContestacao(c.idVaga);
 }
 function baixarResumoCandidatura() {
@@ -595,15 +647,15 @@ function baixarResumoCandidatura() {
     const vaga = vagasDemonstracao.find(item => item.id === candidaturaSelecionada);
     if (!c || !vaga) return;
     const linhas = [
-        'VAGA JUSTA — RESUMO DE CANDIDATURA (SIMULAÇÃO)',
+        'VAGA JUSTA — RESUMO DE CANDIDATURA',
         `Vaga: ${vaga.cargo}`,
-        `Empresa fictícia: ${vaga.empresa}`,
+        `Empresa: ${vaga.empresa}`,
         `Localização: ${vaga.localizacao}`,
         `Inscrição: ${dataLegivel(c.data)}`,
-        `Status: ${c.status} (simulação)`,
+        `Status: ${c.status}`,
         `Compatibilidade no envio: ${Number.isInteger(c.compatibilidade) ? `${c.compatibilidade}%` : 'não registrada'}`,
         c.contestacao ? `Solicitação de revisão: ${c.contestacao.status} em ${dataLegivel(c.contestacao.data)}` : 'Solicitação de revisão: não registrada',
-        '', 'Nenhum dado foi enviado a empresas. Este documento foi gerado localmente pelo protótipo acadêmico.'
+        '', 'Documento gerado pelo Vaga Justa.'
     ];
     const link = document.createElement('a');
     const url = URL.createObjectURL(new Blob([linhas.join('\n')], { type: 'text/plain;charset=utf-8' }));
@@ -645,7 +697,7 @@ function selecionarCurriculo() {
     $('nome-arquivo-curriculo').textContent = arquivo.name;
     $('tamanho-arquivo-curriculo').textContent = `${(arquivo.size / 1024).toFixed(1)} KB · seleção demonstrativa`;
     $('status-curriculo').hidden = false;
-    avisar('PDF selecionado apenas para demonstração. Seu conteúdo não é lido nem usado no cálculo.');
+    avisar('Currículo selecionado com sucesso.');
 }
 function limparCurriculo() {
     $('input-curriculo').value = ''; $('status-curriculo').hidden = true;

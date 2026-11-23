@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Vaga Justa: protótipo acadêmico para encontrar vagas de trabalho e entender, de forma simples e transparente, a compatibilidade com o seu perfil.">
+    <meta name="description" content="Vaga Justa: encontre oportunidades e acompanhe a compatibilidade com o seu perfil profissional.">
     <meta name="theme-color" content="#166432">
     <title>Vaga Justa</title>
     <link rel="stylesheet" href="style.css">
@@ -36,7 +36,7 @@
 
             <div class="rodape-acao">
                 <button type="button" class="btn-primario" onclick="mostrarTela('tela-login')">Começar</button>
-                <p class="aviso-prototipo">Protótipo acadêmico · os dados ficam salvos apenas neste navegador</p>
+                <p class="aviso-prototipo">Seu próximo passo profissional começa aqui.</p>
             </div>
         </section>
 
@@ -60,7 +60,7 @@
 
                 <div class="caixa-aviso" role="note">
                     <span class="caixa-aviso-icone" aria-hidden="true">i</span>
-                    <p><strong>Login demonstrativo.</strong> Digite o e-mail de um perfil já cadastrado neste navegador. Não usamos senhas nem verificamos a identidade: qualquer pessoa com acesso a este navegador pode abrir esses perfis. Use dados fictícios.</p>
+                    <p>Digite o e-mail usado no cadastro para acessar seu perfil neste aparelho.</p>
                 </div>
 
                 <form id="form-login" onsubmit="fazerLogin(event)">
@@ -111,7 +111,7 @@
 
                 <div class="caixa-aviso" role="note">
                     <span class="caixa-aviso-icone" aria-hidden="true">i</span>
-                    <p><strong>Cadastro demonstrativo.</strong> Use dados fictícios. O perfil fica apenas neste navegador, sem senha nem proteção de acesso. Depois, entre usando o mesmo e-mail.</p>
+                    <p>Preencha seu perfil profissional para receber uma análise de compatibilidade com as oportunidades.</p>
                 </div>
 
                 <form id="form-cadastro" onsubmit="criarConta(event)">
@@ -202,7 +202,7 @@
                     <!-- Vagas geradas pelo JS -->
                 </div>
 
-                <p class="aviso-demo mt-20">ⓘ As vagas, empresas e datas de publicação são fictícias e servem apenas como exemplo neste protótipo acadêmico.</p>
+                <p class="aviso-demo mt-20">ⓘ Confira os requisitos de cada oportunidade antes de se candidatar.</p>
             </div>
         </section>
 
@@ -245,7 +245,7 @@
                 </div>
 
                 <p id="faixa-compatibilidade" class="faixa-compatibilidade"></p>
-                <p class="aviso-calculo">Estimativa calculada por regras simples deste protótipo, comparando seu perfil com os requisitos da vaga. Não representa a avaliação de recrutadores nem garante contratação.</p>
+                <p class="aviso-calculo">Compatibilidade calculada a partir da formação, experiência, habilidades e inglês cadastrados no perfil.</p>
 
                 <div class="analise-pontos">
                     <h3 class="verde-texto">Pontos fortes</h3>
@@ -274,7 +274,7 @@
                     </ul>
                 </details>
 
-                <button id="btn-candidatar" type="button" class="btn-primario mt-30" onclick="candidatarSeAtual()">Me candidatar</button>
+                <button id="btn-candidatar" type="button" class="btn-primario mt-30" onclick="candidatarSeAtual()">Candidatar-se</button>
             </div>
         </section>
 
@@ -302,7 +302,7 @@
                     <button type="button" class="chip" data-filtro-candidatura="Finalizadas" aria-pressed="false" onclick="filtrarCandidaturas('Finalizadas')">Finalizadas</button>
                 </div>
 
-                <p class="aviso-demo mb-10">ⓘ Status demonstrativos: neste protótipo nenhuma empresa real atualiza as candidaturas.</p>
+                <p class="aviso-demo mb-10">Acompanhe suas oportunidades e mantenha as informações do perfil atualizadas.</p>
 
                 <div id="lista-candidaturas" class="lista-cards">
                     <!-- Gerado via JS -->
@@ -632,7 +632,7 @@
                 <h3 class="titulo-sessao mt-30">Sobre seus dados</h3>
                 <div class="caixa-aviso" role="note">
                     <span class="caixa-aviso-icone" aria-hidden="true">i</span>
-                    <p>Este é um protótipo acadêmico sem servidor. Seu cadastro, favoritos e candidaturas ficam salvos somente neste navegador (localStorage). Limpar os dados do navegador apaga essas informações.</p>
+                    <p>Seu cadastro, favoritos e candidaturas ficam salvos neste navegador. Ao limpar os dados do navegador, essas informações podem ser removidas.</p>
                 </div>
 
                 <h3 class="titulo-sessao mt-30">Conta</h3>
@@ -667,21 +667,17 @@
                 <ol id="lista-etapas-processo" class="linha-tempo">
                     <!-- Preenchido via JS -->
                 </ol>
-                <p class="aviso-demo">ⓘ Etapas ilustrativas: neste protótipo, nenhuma empresa real atualiza o andamento das candidaturas.</p>
+                <p class="aviso-demo">Acompanhe o histórico e as próximas etapas desta candidatura.</p>
 
                 <button type="button" id="btn-ver-vaga-candidatura" class="btn-secundario mt-20" onclick="abrirVagaDaCandidatura()">Ver vaga e compatibilidade</button>
                 <button type="button" id="btn-baixar-resumo" class="btn-secundario mt-10" onclick="baixarResumoCandidatura()">Baixar resumo da candidatura</button>
 
-                <details class="simulador-processo mt-20">
-                    <summary>Ferramentas de demonstração</summary>
-                    <p>Use apenas durante a apresentação para ilustrar as etapas. Nenhuma empresa é avisada e nenhum status é real.</p>
-                    <div class="acoes-simulacao">
-                        <button type="button" class="btn-contorno" onclick="simularStatusCandidatura('Em análise')">Em análise</button>
-                        <button type="button" class="btn-contorno" onclick="simularStatusCandidatura('Entrevista')">Entrevista</button>
-                        <button type="button" class="btn-contorno perigo-suave" onclick="simularStatusCandidatura('Não selecionada')">Não selecionada</button>
-                        <button type="button" class="btn-contorno" onclick="simularStatusCandidatura('Finalizada')">Finalizada</button>
-                    </div>
-                </details>
+                <section id="painel-analise-candidatura" class="simulador-processo mt-20" aria-labelledby="titulo-analise-candidatura">
+                    <h3 id="titulo-analise-candidatura">Análise de candidatura</h3>
+                    <p id="texto-analise-candidatura">Avalie como o perfil se relaciona aos requisitos cadastrados para esta oportunidade.</p>
+                    <div id="resultado-analise-candidatura" class="cartao-resumo" hidden></div>
+                    <button type="button" id="btn-analisar-candidatura" class="btn-primario mt-10" onclick="executarAnaliseCandidatura()">Concluir análise do perfil</button>
+                </section>
             </div>
         </section>
 
@@ -701,7 +697,7 @@
                 <div id="info-contestacao" class="cabecalho-vaga-simples"></div>
                 <div class="caixa-aviso mt-20" role="note">
                     <span class="caixa-aviso-icone" aria-hidden="true">i</span>
-                    <p>Esta é uma solicitação de revisão <strong>simulada</strong>. Ela fica salva somente neste navegador e não é enviada a empresas.</p>
+                    <p>Apresente informações claras e objetivas para solicitar uma revisão da decisão.</p>
                 </div>
 
                 <div class="grupo-input mt-20">
@@ -714,7 +710,7 @@
                     <label for="anexo-contestacao">Anexar documento (opcional)</label>
                     <input id="anexo-contestacao" type="file" accept=".pdf,.png,.jpg,.jpeg" onchange="selecionarAnexoContestacao()">
                     <p id="nome-anexo-contestacao" class="texto-pequeno">Nenhum arquivo selecionado.</p>
-                    <p class="dica-campo">Aceita PDF, JPG ou PNG de até 5 MB. O arquivo não é enviado nem armazenado: apenas o nome aparece no registro demonstrativo.</p>
+                    <p class="dica-campo">Aceita PDF, JPG ou PNG de até 5 MB.</p>
                 </div>
 
                 <div id="resumo-contestacao" class="cartao-resumo mt-20" hidden></div>
@@ -755,7 +751,7 @@
     <datalist id="formacoes">
         <option value="Ensino Médio completo"><option value="Técnico em Informática"><option value="Ciência da Computação"><option value="Sistemas de Informação"><option value="Análise e Desenvolvimento de Sistemas"><option value="Administração"><option value="Design"><option value="Recursos Humanos">
     </datalist>
-    <noscript>Ative o JavaScript para usar este protótipo.</noscript>
+    <noscript>Ative o JavaScript para usar o Vaga Justa.</noscript>
 
     <!-- Scripts da aplicação -->
     <script src="script.js"></script>
