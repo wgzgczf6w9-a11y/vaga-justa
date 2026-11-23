@@ -291,10 +291,14 @@
             </header>
 
             <div class="conteudo-scroll pt-0">
+                <div id="resumo-candidaturas" class="painel-resumo-candidaturas" aria-label="Resumo das candidaturas">
+                    <!-- Gerado via JavaScript -->
+                </div>
                 <div class="filtros-container" role="group" aria-label="Filtrar candidaturas por etapa">
                     <button type="button" class="chip ativo" data-filtro-candidatura="Todas" aria-pressed="true" onclick="filtrarCandidaturas('Todas')">Todas</button>
                     <button type="button" class="chip" data-filtro-candidatura="Em análise" aria-pressed="false" onclick="filtrarCandidaturas('Em análise')">Em análise</button>
                     <button type="button" class="chip" data-filtro-candidatura="Entrevista" aria-pressed="false" onclick="filtrarCandidaturas('Entrevista')">Entrevista</button>
+                    <button type="button" class="chip" data-filtro-candidatura="Não selecionada" aria-pressed="false" onclick="filtrarCandidaturas('Não selecionada')">Não selecionadas</button>
                     <button type="button" class="chip" data-filtro-candidatura="Finalizadas" aria-pressed="false" onclick="filtrarCandidaturas('Finalizadas')">Finalizadas</button>
                 </div>
 
@@ -666,7 +670,56 @@
                 <p class="aviso-demo">ⓘ Etapas ilustrativas: neste protótipo, nenhuma empresa real atualiza o andamento das candidaturas.</p>
 
                 <button type="button" id="btn-ver-vaga-candidatura" class="btn-secundario mt-20" onclick="abrirVagaDaCandidatura()">Ver vaga e compatibilidade</button>
+                <button type="button" id="btn-baixar-resumo" class="btn-secundario mt-10" onclick="baixarResumoCandidatura()">Baixar resumo da candidatura</button>
+
+                <details class="simulador-processo mt-20">
+                    <summary>Ferramentas de demonstração</summary>
+                    <p>Use apenas durante a apresentação para ilustrar as etapas. Nenhuma empresa é avisada e nenhum status é real.</p>
+                    <div class="acoes-simulacao">
+                        <button type="button" class="btn-contorno" onclick="simularStatusCandidatura('Em análise')">Em análise</button>
+                        <button type="button" class="btn-contorno" onclick="simularStatusCandidatura('Entrevista')">Entrevista</button>
+                        <button type="button" class="btn-contorno perigo-suave" onclick="simularStatusCandidatura('Não selecionada')">Não selecionada</button>
+                        <button type="button" class="btn-contorno" onclick="simularStatusCandidatura('Finalizada')">Finalizada</button>
+                    </div>
+                </details>
             </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TELA 13: CONTESTAÇÃO DE DECISÃO -->
+        <!-- ========================================== -->
+        <section id="tela-contestacao" class="tela" data-titulo="Contestar decisão">
+            <header class="header-padrao">
+                <button type="button" class="btn-voltar" onclick="mostrarTela('tela-detalhes-candidatura')" aria-label="Voltar para detalhes da candidatura">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                </button>
+                <h2 class="titulo-header">Contestar decisão</h2>
+                <div class="espacador-header" aria-hidden="true"></div>
+            </header>
+
+            <form id="form-contestacao" class="conteudo-scroll" onsubmit="enviarContestacao(event)">
+                <div id="info-contestacao" class="cabecalho-vaga-simples"></div>
+                <div class="caixa-aviso mt-20" role="note">
+                    <span class="caixa-aviso-icone" aria-hidden="true">i</span>
+                    <p>Esta é uma solicitação de revisão <strong>simulada</strong>. Ela fica salva somente neste navegador e não é enviada a empresas.</p>
+                </div>
+
+                <div class="grupo-input mt-20">
+                    <label for="motivo-contestacao">Motivo da contestação</label>
+                    <textarea id="motivo-contestacao" rows="6" maxlength="500" minlength="20" required placeholder="Explique de forma respeitosa por que você acredita que a decisão deve ser revisada..." oninput="atualizarContadorContestacao()"></textarea>
+                    <p id="contador-contestacao" class="contador-caracteres" aria-live="polite">0/500</p>
+                </div>
+
+                <div class="grupo-input mt-20">
+                    <label for="anexo-contestacao">Anexar documento (opcional)</label>
+                    <input id="anexo-contestacao" type="file" accept=".pdf,.png,.jpg,.jpeg" onchange="selecionarAnexoContestacao()">
+                    <p id="nome-anexo-contestacao" class="texto-pequeno">Nenhum arquivo selecionado.</p>
+                    <p class="dica-campo">Aceita PDF, JPG ou PNG de até 5 MB. O arquivo não é enviado nem armazenado: apenas o nome aparece no registro demonstrativo.</p>
+                </div>
+
+                <div id="resumo-contestacao" class="cartao-resumo mt-20" hidden></div>
+                <button id="btn-enviar-contestacao" type="submit" class="btn-primario mt-20">Enviar solicitação de revisão</button>
+            </form>
         </section>
 
 

@@ -164,7 +164,13 @@ function perfilValido(p) {
 }
 function contaValida(c) {
     return c && perfilValido(c.perfil) && Array.isArray(c.favoritos) && c.favoritos.every(Number.isInteger) &&
-        Array.isArray(c.candidaturas) && c.candidaturas.every(a => a && Number.isInteger(a.idVaga) && typeof a.data === 'string' && typeof a.status === 'string');
+        Array.isArray(c.candidaturas) && c.candidaturas.every(candidaturaValida);
+}
+function candidaturaValida(a) {
+    const basica = a && Number.isInteger(a.idVaga) && typeof a.data === 'string' && typeof a.status === 'string';
+    const compatibilidadeOk = a?.compatibilidade === undefined || (Number.isInteger(a.compatibilidade) && a.compatibilidade >= 0 && a.compatibilidade <= 100);
+    const contestacaoOk = a?.contestacao === undefined || (a.contestacao && typeof a.contestacao.motivo === 'string' && typeof a.contestacao.data === 'string' && typeof a.contestacao.status === 'string');
+    return basica && compatibilidadeOk && contestacaoOk;
 }
 function salvarContas(novas) {
     if (!gravar(CHAVE_DADOS, novas)) return false;
@@ -430,40 +436,183 @@ function candidatarSeAtual() {
     if (!contaAtual || !vagaAtualParaCompatibilidade) return;
     const idVaga = vagaAtualParaCompatibilidade.id;
     if (contaAtual.candidaturas.some(c => c.idVaga === idVaga)) { avisar('Você já registrou esta candidatura.'); return; }
-    const candidatura = { idVaga, data: new Date().toLocaleDateString('pt-BR'), status: 'Em análise' };
+    const compatibilidade = calcularCompatibilidade(vagaAtualParaCompatibilidade, contaAtual.perfil).pontos;
+    const candidatura = {
+        idVaga,
+        data: new Date().toLocaleDateString('pt-BR'),
+        status: 'Em análise',
+        compatibilidade,
+        historico: [{ etapa: 'Candidatura registrada', data: new Date().toLocaleDateString('pt-BR') }]
+    };
     if (!atualizarConta({ candidaturas: [...contaAtual.candidaturas, candidatura] })) return;
     exibirCompatibilidade();
     avisar('Candidatura simulada e salva neste navegador. Nenhum dado foi enviado à empresa.');
 }
 function renderizarCandidaturas() {
     sincronizarChips('data-filtro-candidatura', filtroCandidaturas);
+    renderizarResumoCandidaturas();
     const container = $('lista-candidaturas'); container.replaceChildren();
-    const candidaturas = contaAtual.candidaturas.filter(c => filtroCandidaturas === 'Todas' || c.status === filtroCandidaturas);
+    const candidaturas = contaAtual.candidaturas.filter(c => {
+        if (filtroCandidaturas === 'Todas') return true;
+        if (filtroCandidaturas === 'Finalizadas') return c.status === 'Finalizada';
+        return c.status === filtroCandidaturas;
+    });
     if (!candidaturas.length) container.append(elemento('p', 'texto-central mt-20', 'Nenhuma candidatura neste filtro.'));
     candidaturas.forEach(c => {
         const vaga = vagasDemonstracao.find(v => v.id === c.idVaga);
         if (!vaga) return;
         const card = elemento('article', 'card-vaga');
-        card.append(cabecalhoVaga(vaga), elemento('p', 'local mt-10', `Registrada em ${dataLegivel(c.data)}`), elemento('p', 'status-candidatura', `${c.status} · simulação`), botao('Ver detalhes', 'btn-compatibilidade mt-10', () => verDetalhesCandidatura(c.idVaga)));
+        const status = elemento('p', `status-candidatura ${classeStatus(c.status)}`, `${c.status} · simulação`);
+        card.append(cabecalhoVaga(vaga), elemento('p', 'local mt-10', `Registrada em ${dataLegivel(c.data)}`));
+        if (Number.isInteger(c.compatibilidade)) card.append(elemento('p', 'texto-pequeno', `Compatibilidade no envio: ${c.compatibilidade}%`));
+        card.append(status, botao('Ver detalhes', 'btn-compatibilidade mt-10', () => verDetalhesCandidatura(c.idVaga)));
+        if (c.status === 'Não selecionada') card.append(botao(c.contestacao ? 'Ver solicitação de revisão' : 'Contestar decisão', 'btn-secundario mt-10', () => abrirContestacao(c.idVaga)));
         container.append(card);
     });
 }
+function renderizarResumoCandidaturas() {
+    const resumo = $('resumo-candidaturas');
+    if (!resumo || !contaAtual) return;
+    const candidaturas = contaAtual.candidaturas;
+    const itens = [
+        ['Total', candidaturas.length],
+        ['Em análise', candidaturas.filter(c => c.status === 'Em análise').length],
+        ['Entrevistas', candidaturas.filter(c => c.status === 'Entrevista').length],
+        ['Revisões', candidaturas.filter(c => c.contestacao).length]
+    ];
+    resumo.replaceChildren(...itens.map(([rotulo, valor]) => {
+        const item = elemento('div', 'item-resumo-candidatura');
+        item.append(elemento('strong', '', String(valor)), elemento('span', '', rotulo));
+        return item;
+    }));
+}
 function filtrarCandidaturas(status) { filtroCandidaturas = status; renderizarCandidaturas(); }
+function classeStatus(status) {
+    if (status === 'Entrevista') return 'status-entrevista';
+    if (status === 'Não selecionada') return 'status-nao-selecionada';
+    if (status === 'Finalizada') return 'status-finalizada';
+    return '';
+}
+function atualizarCandidatura(idVaga, alteracao) {
+    if (!contaAtual) return false;
+    const candidaturas = contaAtual.candidaturas.map(c => c.idVaga === idVaga ? { ...c, ...alteracao } : c);
+    return atualizarConta({ candidaturas });
+}
 function verDetalhesCandidatura(id) {
     const c = contaAtual?.candidaturas.find(c => c.idVaga === id);
     const vaga = vagasDemonstracao.find(v => v.id === id);
     if (!c || !vaga) return;
     candidaturaSelecionada = id;
-    $('info-detalhes-candidatura').replaceChildren(cabecalhoVaga(vaga), elemento('p', 'local mt-10', `Registrada em ${dataLegivel(c.data)} · ${c.status} (simulação)`));
-    preencherLista('lista-etapas-processo', [
-        `Registro local concluído em ${dataLegivel(c.data)}.`,
-        c.status === 'Em análise' ? 'Análise do perfil: pendente na simulação.' : 'Análise: sem conclusão registrada.',
-        c.status === 'Entrevista' ? 'Entrevista: status ilustrativo, sem data ou convite real.' : 'Entrevista: não agendada.',
-        c.status === 'Finalizadas' ? 'Processo finalizado na simulação. Nenhum resultado de contratação informado.' : 'Conclusão: não registrada.'
-    ]);
+    const status = elemento('p', `status-candidatura ${classeStatus(c.status)}`, `${c.status} · simulação`);
+    $('info-detalhes-candidatura').replaceChildren(cabecalhoVaga(vaga), elemento('p', 'local mt-10', `Registrada em ${dataLegivel(c.data)}.`), status);
+    const etapas = (Array.isArray(c.historico) && c.historico.length)
+        ? c.historico.map(item => `${item.etapa} em ${dataLegivel(item.data)}.`)
+        : [`Candidatura registrada localmente em ${dataLegivel(c.data)}.`];
+    if (Number.isInteger(c.compatibilidade)) etapas.push(`Compatibilidade registrada no envio: ${c.compatibilidade}%.`);
+    if (c.status === 'Em análise') etapas.push('Análise do perfil: pendente na simulação.');
+    if (c.status === 'Entrevista') etapas.push('Entrevista: status ilustrativo, sem data ou convite real.');
+    if (c.status === 'Não selecionada') etapas.push('Decisão demonstrativa: candidatura não selecionada nesta simulação. Você pode registrar uma solicitação de revisão.');
+    if (c.status === 'Finalizada') etapas.push('Processo finalizado na simulação, sem resultado de contratação informado.');
+    if (c.contestacao) etapas.push(`Solicitação de revisão registrada em ${dataLegivel(c.contestacao.data)}: ${c.contestacao.status}.`);
+    preencherLista('lista-etapas-processo', etapas);
     mostrarTela('tela-detalhes-candidatura');
 }
 function abrirVagaDaCandidatura() { abrirCompatibilidade(candidaturaSelecionada); }
+function simularStatusCandidatura(status) {
+    const c = contaAtual?.candidaturas.find(item => item.idVaga === candidaturaSelecionada);
+    if (!c) return;
+    if (c.status === status) { avisar(`A candidatura já está como “${status}”.`); return; }
+    const historico = Array.isArray(c.historico) ? c.historico : [{ etapa: 'Candidatura registrada', data: c.data }];
+    historico.push({ etapa: `Status alterado para ${status} (simulação)`, data: new Date().toLocaleDateString('pt-BR') });
+    if (!atualizarCandidatura(c.idVaga, { status, historico })) return;
+    verDetalhesCandidatura(c.idVaga);
+    avisar(`Status alterado para “${status}” apenas nesta demonstração.`);
+}
+function atualizarContadorContestacao() {
+    $('contador-contestacao').textContent = `${$('motivo-contestacao').value.length}/500`;
+}
+function selecionarAnexoContestacao() {
+    const arquivo = $('anexo-contestacao').files[0];
+    if (!arquivo) { $('nome-anexo-contestacao').textContent = 'Nenhum arquivo selecionado.'; return; }
+    const tipoValido = /\.(pdf|png|jpe?g)$/i.test(arquivo.name);
+    if (!tipoValido || arquivo.size === 0 || arquivo.size > 5 * 1024 * 1024) {
+        $('anexo-contestacao').value = '';
+        $('nome-anexo-contestacao').textContent = 'Nenhum arquivo selecionado.';
+        avisar('Selecione um PDF, JPG ou PNG não vazio de até 5 MB.');
+        return;
+    }
+    $('nome-anexo-contestacao').textContent = `${arquivo.name} · anexo demonstrativo`;
+}
+function abrirContestacao(id) {
+    const c = contaAtual?.candidaturas.find(item => item.idVaga === id);
+    const vaga = vagasDemonstracao.find(item => item.id === id);
+    if (!c || !vaga || c.status !== 'Não selecionada') { avisar('A solicitação de revisão só pode ser demonstrada para uma candidatura não selecionada.'); return; }
+    candidaturaSelecionada = id;
+    $('info-contestacao').replaceChildren(cabecalhoVaga(vaga), elemento('p', 'local mt-10', `Decisão demonstrativa: não selecionada.`));
+    const motivo = $('motivo-contestacao');
+    const resumo = $('resumo-contestacao');
+    $('form-contestacao').reset();
+    $('nome-anexo-contestacao').textContent = 'Nenhum arquivo selecionado.';
+    if (c.contestacao) {
+        motivo.value = c.contestacao.motivo;
+        motivo.disabled = true;
+        $('anexo-contestacao').disabled = true;
+        $('nome-anexo-contestacao').textContent = c.contestacao.anexoNome ? `${c.contestacao.anexoNome} · nome registrado` : 'Nenhum anexo foi informado.';
+        resumo.hidden = false;
+        resumo.replaceChildren(elemento('strong', '', 'Solicitação de revisão registrada'), elemento('p', '', `Data: ${dataLegivel(c.contestacao.data)} · Situação: ${c.contestacao.status}`));
+        $('btn-enviar-contestacao').textContent = 'Solicitação já registrada';
+        $('btn-enviar-contestacao').disabled = true;
+    } else {
+        motivo.disabled = false;
+        $('anexo-contestacao').disabled = false;
+        resumo.hidden = true;
+        resumo.replaceChildren();
+        $('btn-enviar-contestacao').textContent = 'Enviar solicitação de revisão';
+        $('btn-enviar-contestacao').disabled = false;
+    }
+    atualizarContadorContestacao();
+    mostrarTela('tela-contestacao');
+}
+function enviarContestacao(event) {
+    event.preventDefault();
+    const c = contaAtual?.candidaturas.find(item => item.idVaga === candidaturaSelecionada);
+    if (!c || c.status !== 'Não selecionada' || c.contestacao) return;
+    const motivo = $('motivo-contestacao').value.trim();
+    if (motivo.length < 20) { avisar('Explique o motivo com pelo menos 20 caracteres.'); return; }
+    const arquivo = $('anexo-contestacao').files[0];
+    const contestacao = {
+        motivo,
+        anexoNome: arquivo?.name || '',
+        data: new Date().toLocaleDateString('pt-BR'),
+        status: 'Recebida para revisão (simulação)'
+    };
+    if (!atualizarCandidatura(c.idVaga, { contestacao })) return;
+    avisar('Solicitação de revisão registrada neste navegador. Nenhum dado foi enviado a empresas.');
+    abrirContestacao(c.idVaga);
+}
+function baixarResumoCandidatura() {
+    const c = contaAtual?.candidaturas.find(item => item.idVaga === candidaturaSelecionada);
+    const vaga = vagasDemonstracao.find(item => item.id === candidaturaSelecionada);
+    if (!c || !vaga) return;
+    const linhas = [
+        'VAGA JUSTA — RESUMO DE CANDIDATURA (SIMULAÇÃO)',
+        `Vaga: ${vaga.cargo}`,
+        `Empresa fictícia: ${vaga.empresa}`,
+        `Localização: ${vaga.localizacao}`,
+        `Inscrição: ${dataLegivel(c.data)}`,
+        `Status: ${c.status} (simulação)`,
+        `Compatibilidade no envio: ${Number.isInteger(c.compatibilidade) ? `${c.compatibilidade}%` : 'não registrada'}`,
+        c.contestacao ? `Solicitação de revisão: ${c.contestacao.status} em ${dataLegivel(c.contestacao.data)}` : 'Solicitação de revisão: não registrada',
+        '', 'Nenhum dado foi enviado a empresas. Este documento foi gerado localmente pelo protótipo acadêmico.'
+    ];
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(new Blob([linhas.join('\n')], { type: 'text/plain;charset=utf-8' }));
+    link.href = url;
+    link.download = `resumo-candidatura-${vaga.id}.txt`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    avisar('Resumo baixado neste dispositivo.');
+}
 
 // ==========================================
 // PERFIL, CURRÍCULO E ACESSIBILIDADE

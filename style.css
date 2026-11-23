@@ -495,6 +495,33 @@ h2 {
     background-color: #fff3cd;
     color: #856404;
 }
+.status-nao-selecionada {
+    background-color: #fde8e7;
+    color: #9b2c2c;
+}
+.status-finalizada {
+    background-color: #e7edf5;
+    color: #35506d;
+}
+.painel-resumo-candidaturas {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.item-resumo-candidatura {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 8px;
+    text-align: center;
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    background: var(--branco);
+}
+.item-resumo-candidatura strong { color: var(--verde-principal); font-size: 1.125rem; }
+.item-resumo-candidatura span { color: var(--texto-cinza); font-size: .6875rem; line-height: 1.2; }
 
 /* ========================================== */
 /* PERFIL */
@@ -816,6 +843,20 @@ button:disabled { opacity: .65; cursor: default; }
 .linha-tempo { padding-left: 24px; }
 .linha-tempo li { padding: 10px 0; }
 .status-candidatura { display: inline-block; margin-top: 8px; }
+.contador-caracteres { text-align: right; margin-top: 6px; color: var(--texto-cinza); font-size: .75rem; }
+.grupo-input textarea { width: 100%; min-height: 144px; resize: vertical; border: 1px solid var(--borda); border-radius: 8px; padding: 12px; font: inherit; line-height: 1.5; }
+.grupo-input textarea:focus-visible { outline: 3px solid var(--verde-principal); outline-offset: 2px; border-color: var(--verde-principal); }
+.grupo-input input[type="file"] { width: 100%; border: 1px dashed var(--verde-principal); border-radius: 8px; padding: 12px; background: var(--verde-claro); }
+.cartao-resumo { padding: 14px; border: 1px solid var(--borda); border-radius: 10px; background: var(--fundo-cinza); }
+.cartao-resumo strong { display: block; margin-bottom: 6px; }
+.simulador-processo { border: 1px dashed var(--borda); border-radius: 10px; padding: 14px; background: var(--fundo-cinza); }
+.simulador-processo summary { cursor: pointer; font-weight: 600; }
+.simulador-processo p { margin: 10px 0; color: var(--texto-cinza); font-size: .8125rem; line-height: 1.5; }
+.acoes-simulacao { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn-contorno { border: 1px solid var(--verde-principal); color: var(--verde-principal); border-radius: 8px; padding: 10px 12px; font: inherit; font-size: .8125rem; min-height: 44px; }
+.btn-contorno:hover { background: var(--verde-claro); }
+.perigo-suave { border-color: #b62e24; color: #b62e24; }
+body.alto-contraste .perigo-suave { border-color: #ffb3ad; color: #ffb3ad; }
 .nav-inferior { position: fixed; left: 50%; transform: translateX(-50%); max-width: 480px; padding: 8px 4px calc(8px + env(safe-area-inset-bottom)); }
 .nav-item { flex: 1; min-width: 0; font-size: .6875rem; padding: 4px 1px; }
 .area-notificacoes { position: fixed; z-index: 200; top: max(12px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(calc(100% - 24px), 450px); pointer-events: none; }
