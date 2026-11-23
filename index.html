@@ -559,22 +559,22 @@
             </header>
 
             <div class="conteudo-scroll">
-                <p class="texto-central mb-10">Selecione seu currículo em PDF para manter suas informações profissionais organizadas.</p>
+                <p class="texto-central mb-10">Adicione seu currículo em PDF para manter suas informações profissionais organizadas.</p>
 
                 <div class="seletor-arquivo mt-20">
                     <input type="file" id="input-curriculo" class="visualmente-oculto" accept=".pdf,application/pdf" onchange="selecionarCurriculo()">
                     <label for="input-curriculo" class="btn-secundario">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false" class="icone-botao"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                        Selecionar currículo (PDF)
+                        Adicionar currículo (PDF)
                     </label>
                 </div>
 
                 <div id="status-curriculo" class="cartao-arquivo mt-20" hidden aria-live="polite">
-                    <p class="verde-texto negrito">Currículo selecionado:</p>
+                    <p class="verde-texto negrito">Currículo adicionado ao perfil:</p>
                     <p id="nome-arquivo-curriculo" class="nome-arquivo"></p>
                     <p id="tamanho-arquivo-curriculo" class="texto-pequeno"></p>
-                    <p class="texto-pequeno mt-10">O arquivo fica apenas selecionado nesta tela. Ele <strong>não</strong> é enviado a nenhum servidor nem salvo no navegador.</p>
-                    <button type="button" class="link-simples mt-10" onclick="limparCurriculo()">Remover seleção</button>
+                    <p class="texto-pequeno mt-10">O nome e o tamanho do arquivo ficam associados ao seu perfil neste navegador.</p>
+                    <button type="button" class="link-simples mt-10" onclick="limparCurriculo()">Remover currículo</button>
                 </div>
 
                 <div class="item-acessibilidade item-dev mt-30">
@@ -671,6 +671,7 @@
 
                 <button type="button" id="btn-ver-vaga-candidatura" class="btn-secundario mt-20" onclick="abrirVagaDaCandidatura()">Ver vaga e compatibilidade</button>
                 <button type="button" id="btn-baixar-resumo" class="btn-secundario mt-10" onclick="baixarResumoCandidatura()">Baixar resumo da candidatura</button>
+                <p id="status-resumo-download" class="texto-pequeno mt-10" hidden aria-live="polite"></p>
 
                 <section id="painel-analise-candidatura" class="simulador-processo mt-20" aria-labelledby="titulo-analise-candidatura">
                     <h3 id="titulo-analise-candidatura">Análise de candidatura</h3>

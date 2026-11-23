@@ -228,6 +228,7 @@ function mostrarTela(idTela, registrar = true) {
     });
     if (idTela === 'tela-vagas') buscarVagas();
     if (idTela === 'tela-perfil') preencherPerfil();
+    if (idTela === 'tela-curriculo') preencherCurriculo();
     if (idTela === 'tela-favoritos') renderizarFavoritos();
     if (idTela === 'tela-candidaturas') renderizarCandidaturas();
     document.title = `${tela.dataset.titulo} · Vaga Justa`;
@@ -507,7 +508,7 @@ function verDetalhesCandidatura(id) {
     $('info-detalhes-candidatura').replaceChildren(cabecalhoVaga(vaga), elemento('p', 'local mt-10', `Registrada em ${dataLegivel(c.data)}.`), status);
     const etapas = (Array.isArray(c.historico) && c.historico.length)
         ? c.historico.map(item => `${item.etapa} em ${dataLegivel(item.data)}.`)
-        : [`Candidatura registrada localmente em ${dataLegivel(c.data)}.`];
+        : [`Candidatura registrada em ${dataLegivel(c.data)}.`];
     if (Number.isInteger(c.compatibilidade)) etapas.push(`Compatibilidade registrada no envio: ${c.compatibilidade}%.`);
     if (c.status === 'Em análise') etapas.push('Análise de perfil pendente.');
     if (c.status === 'Entrevista') etapas.push('Perfil indicado para a próxima etapa.');
@@ -661,9 +662,15 @@ function baixarResumoCandidatura() {
     const url = URL.createObjectURL(new Blob([linhas.join('\n')], { type: 'text/plain;charset=utf-8' }));
     link.href = url;
     link.download = `resumo-candidatura-${vaga.id}.txt`;
+    // O link é inserido na página antes do clique para funcionar também no Safari/iPhone.
+    link.style.display = 'none';
+    document.body.append(link);
     link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    avisar('Resumo baixado neste dispositivo.');
+    setTimeout(() => { link.remove(); URL.revokeObjectURL(url); }, 1000);
+    const statusDownload = $('status-resumo-download');
+    statusDownload.textContent = 'Resumo preparado. Confira a área de downloads do navegador para abrir o arquivo.';
+    statusDownload.hidden = false;
+    avisar('Resumo preparado para download.');
 }
 
 // ==========================================
@@ -692,16 +699,31 @@ function selecionarCurriculo() {
     const arquivo = $('input-curriculo').files[0];
     if (!arquivo) return;
     if (!/\.pdf$/i.test(arquivo.name) || (arquivo.type && arquivo.type !== 'application/pdf') || arquivo.size > 5 * 1024 * 1024 || arquivo.size === 0) {
-        limparCurriculo(); avisar('Selecione um PDF não vazio de até 5 MB.'); return;
+        $('input-curriculo').value = '';
+        avisar('Selecione um PDF não vazio de até 5 MB.'); return;
     }
-    $('nome-arquivo-curriculo').textContent = arquivo.name;
-    $('tamanho-arquivo-curriculo').textContent = `${(arquivo.size / 1024).toFixed(1)} KB · seleção demonstrativa`;
-    $('status-curriculo').hidden = false;
-    avisar('Currículo selecionado com sucesso.');
+    const curriculo = { nome: arquivo.name, tamanho: arquivo.size, data: new Date().toLocaleDateString('pt-BR') };
+    if (!atualizarConta({ curriculo })) return;
+    preencherCurriculo();
+    avisar('Currículo adicionado ao perfil.');
 }
 function limparCurriculo() {
-    $('input-curriculo').value = ''; $('status-curriculo').hidden = true;
+    $('input-curriculo').value = '';
+    if (contaAtual) atualizarConta({ curriculo: null });
+    $('status-curriculo').hidden = true;
     $('nome-arquivo-curriculo').textContent = ''; $('tamanho-arquivo-curriculo').textContent = '';
+    avisar('Currículo removido do perfil.');
+}
+function preencherCurriculo() {
+    const curriculo = contaAtual?.curriculo;
+    const status = $('status-curriculo');
+    if (!curriculo || typeof curriculo.nome !== 'string' || !Number.isFinite(curriculo.tamanho)) {
+        status.hidden = true;
+        return;
+    }
+    $('nome-arquivo-curriculo').textContent = curriculo.nome;
+    $('tamanho-arquivo-curriculo').textContent = `${(curriculo.tamanho / 1024).toFixed(1)} KB · adicionado em ${curriculo.data || 'data não informada'}`;
+    status.hidden = false;
 }
 function definirPreferencia(nome, valor) {
     if (!Object.hasOwn(preferencias, nome)) return;
